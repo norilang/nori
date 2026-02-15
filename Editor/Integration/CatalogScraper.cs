@@ -35,8 +35,6 @@ namespace Nori
 
         public static string ScrapeToJson()
         {
-            _loggedFirstDef = false;
-
             // Get UdonEditorManager via reflection (no compile-time VRC SDK reference)
             var managerType = FindType("VRC.Udon.Editor.UdonEditorManager");
             if (managerType == null)
@@ -175,8 +173,6 @@ namespace Nori
             return json;
         }
 
-        private static bool _loggedFirstDef;
-
         private static void ProcessNodeDefinition(object def, List<ExternEntry> externs,
             Dictionary<string, EnumEntry> enumTypes, Dictionary<string, TypeEntry> typeInfos)
         {
@@ -190,17 +186,6 @@ namespace Nori
                 def = valueProp.GetValue(def);
                 if (def == null) return;
                 defType = def.GetType();
-            }
-
-            // Log the first definition's type and members for debugging
-            if (!_loggedFirstDef)
-            {
-                _loggedFirstDef = true;
-                var props = defType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-                var fields = defType.GetFields(BindingFlags.Public | BindingFlags.Instance);
-                var propNames = string.Join(", ", props.Select(p => p.Name));
-                var fieldNames = string.Join(", ", fields.Select(f => f.Name));
-                Debug.Log($"[Nori] First node def type: {defType.FullName}\n  Properties: [{propNames}]\n  Fields: [{fieldNames}]");
             }
 
             // Get fullName (may be a property or field depending on VRC SDK version)
