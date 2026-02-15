@@ -1,0 +1,80 @@
+{
+  "name": "nori-lang",
+  "displayName": "Nori Language",
+  "description": "Language support for Nori, a programming language for VRChat worlds",
+  "version": "0.1.0",
+  "publisher": "nori",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "activationEvents": [
+    "onLanguage:nori"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "nori",
+        "aliases": [
+          "Nori",
+          "nori"
+        ],
+        "extensions": [
+          ".nori"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/nori-light.png",
+          "dark": "./icons/nori-dark.png"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "nori",
+        "scopeName": "source.nori",
+        "path": "./syntaxes/nori.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "nori",
+        "path": "./snippets/nori.json"
+      }
+    ],
+    "configuration": {
+      "title": "Nori",
+      "properties": {
+        "nori.lsp.path": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Nori language server binary. Leave empty to use the bundled server."
+        },
+        "nori.catalog.path": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the extern catalog JSON file for VRChat type information."
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.3.0",
+    "@vscode/vsce": "^2.22.0"
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  }
+}

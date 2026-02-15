@@ -1,0 +1,261 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Nori",
+  "scopeName": "source.nori",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#constants" },
+    { "include": "#declarations" },
+    { "include": "#keywords" },
+    { "include": "#sync-modes" },
+    { "include": "#network-targets" },
+    { "include": "#type-annotations" },
+    { "include": "#return-type" },
+    { "include": "#support" },
+    { "include": "#operators" },
+    { "include": "#punctuation" },
+    { "include": "#function-call" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.nori",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.nori",
+          "begin": "/\\*",
+          "end": "\\*/",
+          "patterns": [
+            { "include": "#comment-block-nested" }
+          ]
+        }
+      ]
+    },
+    "comment-block-nested": {
+      "name": "comment.block.nori",
+      "begin": "/\\*",
+      "end": "\\*/",
+      "patterns": [
+        { "include": "#comment-block-nested" }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.nori",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.nori",
+              "match": "\\\\[\\\\\"ntr0]"
+            },
+            {
+              "name": "meta.interpolation.nori",
+              "begin": "\\{",
+              "end": "\\}",
+              "beginCaptures": {
+                "0": { "name": "punctuation.definition.interpolation.begin.nori" }
+              },
+              "endCaptures": {
+                "0": { "name": "punctuation.definition.interpolation.end.nori" }
+              },
+              "patterns": [
+                { "include": "source.nori" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.nori",
+          "match": "\\b[0-9]+\\.[0-9]+[fF]?\\b"
+        },
+        {
+          "name": "constant.numeric.integer.nori",
+          "match": "\\b[0-9]+[uU]?\\b"
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "name": "constant.language.boolean.nori",
+          "match": "\\b(true|false)\\b"
+        },
+        {
+          "name": "constant.language.null.nori",
+          "match": "\\b(null)\\b"
+        }
+      ]
+    },
+    "declarations": {
+      "patterns": [
+        {
+          "comment": "Function declaration: fn name",
+          "match": "\\b(fn)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+          "captures": {
+            "1": { "name": "keyword.declaration.function.nori" },
+            "2": { "name": "entity.name.function.nori" }
+          }
+        },
+        {
+          "comment": "Event handler declaration: on EventName",
+          "match": "\\b(on)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+          "captures": {
+            "1": { "name": "keyword.declaration.event-handler.nori" },
+            "2": { "name": "entity.name.function.event.nori" }
+          }
+        },
+        {
+          "comment": "Custom event declaration: event EventName",
+          "match": "\\b(event)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+          "captures": {
+            "1": { "name": "keyword.declaration.event.nori" },
+            "2": { "name": "entity.name.function.event.nori" }
+          }
+        },
+        {
+          "comment": "Variable declaration keywords",
+          "name": "keyword.declaration.nori",
+          "match": "\\b(let|pub|sync)\\b"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.nori",
+          "match": "\\b(if|else|while|for|in|return|break|continue|send|to)\\b"
+        }
+      ]
+    },
+    "sync-modes": {
+      "patterns": [
+        {
+          "comment": "Sync mode identifiers: only highlighted after sync keyword",
+          "match": "(?<=\\bsync\\s)(none|linear|smooth)\\b",
+          "name": "keyword.other.sync-mode.nori"
+        }
+      ]
+    },
+    "network-targets": {
+      "patterns": [
+        {
+          "comment": "Network targets: only highlighted after to keyword",
+          "match": "(?<=\\bto\\s)(All|Owner)\\b",
+          "name": "constant.language.target.nori"
+        }
+      ]
+    },
+    "type-annotations": {
+      "patterns": [
+        {
+          "comment": "Type annotation after colon (e.g., let x: int, param: Vector3)",
+          "match": ":\\s*([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "entity.name.type.nori" }
+          }
+        }
+      ]
+    },
+    "return-type": {
+      "patterns": [
+        {
+          "comment": "Return type after -> arrow",
+          "match": "->\\s*([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "entity.name.type.nori" }
+          }
+        }
+      ]
+    },
+    "support": {
+      "patterns": [
+        {
+          "comment": "Built-in logging functions",
+          "name": "support.function.nori",
+          "match": "\\b(log|warn|error|RequestSerialization)\\b"
+        },
+        {
+          "comment": "Built-in variables",
+          "name": "support.variable.nori",
+          "match": "\\b(localPlayer|gameObject|transform)\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "comment": "Range operator",
+          "name": "keyword.operator.range.nori",
+          "match": "\\.\\."
+        },
+        {
+          "comment": "Arrow operator",
+          "name": "keyword.operator.arrow.nori",
+          "match": "->"
+        },
+        {
+          "comment": "Comparison operators",
+          "name": "keyword.operator.comparison.nori",
+          "match": "==|!=|<=|>=|<|>"
+        },
+        {
+          "comment": "Logical operators",
+          "name": "keyword.operator.logical.nori",
+          "match": "&&|\\|\\||!"
+        },
+        {
+          "comment": "Compound assignment operators",
+          "name": "keyword.operator.assignment.compound.nori",
+          "match": "\\+=|-=|\\*=|/="
+        },
+        {
+          "comment": "Assignment operator",
+          "name": "keyword.operator.assignment.nori",
+          "match": "="
+        },
+        {
+          "comment": "Arithmetic operators",
+          "name": "keyword.operator.arithmetic.nori",
+          "match": "\\+|-|\\*|/|%"
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.separator.comma.nori",
+          "match": ","
+        },
+        {
+          "name": "punctuation.separator.colon.nori",
+          "match": ":"
+        },
+        {
+          "name": "punctuation.accessor.dot.nori",
+          "match": "\\."
+        }
+      ]
+    },
+    "function-call": {
+      "patterns": [
+        {
+          "comment": "Function or method call: name(",
+          "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?=\\()",
+          "captures": {
+            "1": { "name": "entity.name.function.call.nori" }
+          }
+        }
+      ]
+    }
+  }
+}

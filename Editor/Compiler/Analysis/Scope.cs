@@ -59,6 +59,8 @@ namespace Nori.Compiler
             return _parent?.Lookup(name);
         }
 
+        public Scope Parent => _parent;
+
         public IEnumerable<string> AllNames()
         {
             var names = new HashSet<string>(_symbols.Keys);
@@ -68,6 +70,24 @@ namespace Nori.Compiler
                     names.Add(name);
             }
             return names;
+        }
+
+        /// <summary>
+        /// Enumerate all symbols visible in this scope chain (current + all parents).
+        /// </summary>
+        public IEnumerable<Symbol> AllSymbols()
+        {
+            var seen = new HashSet<string>();
+            var scope = this;
+            while (scope != null)
+            {
+                foreach (var kv in scope._symbols)
+                {
+                    if (seen.Add(kv.Key))
+                        yield return kv.Value;
+                }
+                scope = scope._parent;
+            }
         }
 
         public string FindClosest(string name)

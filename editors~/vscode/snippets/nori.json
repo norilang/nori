@@ -1,0 +1,84 @@
+{
+  "Event Handler": {
+    "prefix": "on",
+    "body": [
+      "on ${1|Start,Update,Interact,PlayerJoined,PlayerLeft|} {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Nori event handler (on Start, Update, etc.)"
+  },
+  "Function": {
+    "prefix": "fn",
+    "body": [
+      "fn ${1:name}(${2:params}) -> ${3:type} {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Nori function declaration"
+  },
+  "Custom Event": {
+    "prefix": "event",
+    "body": [
+      "event ${1:EventName} {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Nori custom network event"
+  },
+  "Variable": {
+    "prefix": "let",
+    "body": [
+      "let ${1:name}: ${2:type} = ${3:value}"
+    ],
+    "description": "Nori variable declaration"
+  },
+  "Public Variable": {
+    "prefix": "pub",
+    "body": [
+      "pub let ${1:name}: ${2:type} = ${3:value}"
+    ],
+    "description": "Nori public variable (visible in Unity Inspector)"
+  },
+  "Synced Variable": {
+    "prefix": "sync",
+    "body": [
+      "sync ${1|none,linear,smooth|} ${2:name}: ${3:type} = ${4:value}"
+    ],
+    "description": "Nori synced variable for networking"
+  },
+  "If Statement": {
+    "prefix": "if",
+    "body": [
+      "if ${1:condition} {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Nori if statement"
+  },
+  "For Loop": {
+    "prefix": "for",
+    "body": [
+      "for ${1:i} in ${2:0}..${3:10} {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Nori for-in range loop"
+  },
+  "While Loop": {
+    "prefix": "while",
+    "body": [
+      "while ${1:condition} {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Nori while loop"
+  },
+  "Send Event": {
+    "prefix": "send",
+    "body": [
+      "send ${1:EventName} to ${2|All,Owner|}"
+    ],
+    "description": "Nori send network event"
+  }
+}

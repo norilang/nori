@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Nori.Compiler
 {
     public static class NoriCompiler
@@ -41,6 +43,40 @@ namespace Nori.Compiler
             metadata = NoriCompileMetadata.FromAst(ast, diagnostics);
 
             return CompileResult.Succeeded(uasm, ast, diagnostics, metadata);
+        }
+
+        /// <summary>
+        /// Run the compiler frontend (lex, parse, analyze) without code generation.
+        /// Does NOT terminate early on errors — always runs all phases to collect
+        /// maximum diagnostic and type information for the LSP server.
+        /// </summary>
+        public static AnalysisResult AnalyzeForLsp(string source, string filePath,
+            IExternCatalog catalog = null)
+        {
+            var diagnostics = new DiagnosticBag();
+            catalog = catalog ?? BuiltinCatalog.Instance;
+
+            // Phase 1: Lex (always)
+            var lexer = new Lexer(source, filePath, diagnostics);
+            var tokens = lexer.Tokenize();
+
+            // Phase 2: Parse (even with lex errors — partial AST)
+            var parser = new Parser(tokens, diagnostics);
+            var ast = parser.Parse();
+
+            // Phase 3: Semantic Analysis (even with parse errors — analyze what we can)
+            var typeMap = new Dictionary<AstNode, string>();
+            var scopeMap = new Dictionary<AstNode, Scope>();
+
+            if (ast != null)
+            {
+                var analyzer = new SemanticAnalyzer(ast, catalog, diagnostics);
+                analyzer.Analyze();
+                typeMap = analyzer.GetTypeMap();
+                scopeMap = analyzer.GetScopeMap();
+            }
+
+            return new AnalysisResult(tokens, ast, diagnostics, typeMap, scopeMap);
         }
     }
 }

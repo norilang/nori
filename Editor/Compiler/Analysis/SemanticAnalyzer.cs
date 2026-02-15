@@ -17,6 +17,16 @@ namespace Nori.Compiler
         private readonly Dictionary<string, HashSet<string>> _callGraph
             = new Dictionary<string, HashSet<string>>();
 
+        // LSP support: maps from AST node to resolved type and active scope
+        private readonly Dictionary<AstNode, string> _typeMap = new Dictionary<AstNode, string>();
+        private readonly Dictionary<AstNode, Scope> _scopeMap = new Dictionary<AstNode, Scope>();
+
+        /// <summary>Get the type map populated during analysis (node -> resolved Udon type).</summary>
+        public Dictionary<AstNode, string> GetTypeMap() => _typeMap;
+
+        /// <summary>Get the scope map populated during analysis (node -> active scope at that node).</summary>
+        public Dictionary<AstNode, Scope> GetScopeMap() => _scopeMap;
+
         // Event name -> Udon label mapping
         private static readonly Dictionary<string, string> EventNameMap = new Dictionary<string, string>
         {
@@ -180,6 +190,8 @@ namespace Nori.Compiler
 
         private void AnalyzeDeclaration(Decl decl)
         {
+            _scopeMap[decl] = _currentScope;
+
             switch (decl)
             {
                 case VarDecl v:
@@ -192,6 +204,7 @@ namespace Nori.Compiler
                     break;
 
                 case CustomEventDecl ce:
+                    _scopeMap[ce] = _currentScope;
                     AnalyzeBlock(ce.Body);
                     break;
 
@@ -213,11 +226,13 @@ namespace Nori.Compiler
             var scope = new Scope(_currentScope);
             var prevScope = _currentScope;
             _currentScope = scope;
+            _scopeMap[handler] = scope;
 
             foreach (var param in handler.Parameters)
             {
                 string paramType = ResolveTypeName(param.TypeName, false, param.Span);
                 scope.Define(new Symbol(param.Name, paramType, param.Span, SymbolKind.Parameter));
+                _scopeMap[param] = scope;
             }
 
             AnalyzeBlock(handler.Body);
@@ -235,11 +250,13 @@ namespace Nori.Compiler
             _currentFunction = func.Name;
             _currentFunctionReturnType = func.ReturnTypeName != null
                 ? ResolveTypeName(func.ReturnTypeName, false, func.Span) : null;
+            _scopeMap[func] = scope;
 
             foreach (var param in func.Parameters)
             {
                 string paramType = ResolveTypeName(param.TypeName, false, param.Span);
                 scope.Define(new Symbol(param.Name, paramType, param.Span, SymbolKind.Parameter));
+                _scopeMap[param] = scope;
             }
 
             AnalyzeBlock(func.Body);
@@ -257,6 +274,8 @@ namespace Nori.Compiler
 
         private void AnalyzeStmt(Stmt stmt)
         {
+            _scopeMap[stmt] = _currentScope;
+
             switch (stmt)
             {
                 case LocalVarStmt lv:
@@ -454,6 +473,8 @@ namespace Nori.Compiler
 
         private void AnalyzeExpr(Expr expr)
         {
+            _scopeMap[expr] = _currentScope;
+
             switch (expr)
             {
                 case IntLiteralExpr _:
@@ -499,6 +520,10 @@ namespace Nori.Compiler
                         arr.ResolvedType = arr.Elements[0].ResolvedType + "Array";
                     break;
             }
+
+            // Track resolved type for LSP
+            if (expr.ResolvedType != null)
+                _typeMap[expr] = expr.ResolvedType;
         }
 
         private void ResolveNameExpr(NameExpr name)

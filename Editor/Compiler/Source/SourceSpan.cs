@@ -40,6 +40,18 @@ namespace Nori.Compiler
             return new SourceSpan(File ?? other.File, start, end);
         }
 
+        /// <summary>
+        /// Check if a 1-based line/column position falls within this span.
+        /// </summary>
+        public bool Contains(int line, int column)
+        {
+            if (Start.Line == 0 && End.Line == 0) return false; // SourceSpan.None
+            if (line < Start.Line || line > End.Line) return false;
+            if (line == Start.Line && column < Start.Column) return false;
+            if (line == End.Line && column > End.Column) return false;
+            return true;
+        }
+
         public override string ToString() => $"{File}{Start}..{End}";
     }
 }
