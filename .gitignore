@@ -18,3 +18,7 @@ Thumbs.db
 # Build artifacts
 [Bb]in/
 [Oo]bj/
+
+# Docs site (separate repo)
+docs-site/
+docs-site.meta
