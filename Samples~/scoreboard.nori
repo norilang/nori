@@ -1,0 +1,32 @@
+pub let max_score: int = 10
+sync none score: int = 0
+let is_game_over: bool = false
+
+on Start {
+    log("Scoreboard ready!")
+}
+
+fn update_display() {
+    log("Score: {score}")
+}
+
+event AddPoint {
+    score = score + 1
+    update_display()
+    if score >= max_score {
+        send GameOver to All
+    }
+}
+
+event GameOver {
+    is_game_over = true
+    log("Game over! Final score: {score}")
+}
+
+on Interact {
+    if is_game_over {
+        log("Game is over!")
+        return
+    }
+    send AddPoint to All
+}

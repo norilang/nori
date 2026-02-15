@@ -1,0 +1,126 @@
+{
+  "version": "0.1.0",
+  "description": "Nori Phase 1 builtin extern catalog - hardcoded subset of Udon externs",
+  "types": {
+    "SystemInt32": {
+      "operators": {
+        "+": "SystemInt32.__op_Addition__SystemInt32_SystemInt32__SystemInt32",
+        "-": "SystemInt32.__op_Subtraction__SystemInt32_SystemInt32__SystemInt32",
+        "*": "SystemInt32.__op_Multiplication__SystemInt32_SystemInt32__SystemInt32",
+        "/": "SystemInt32.__op_Division__SystemInt32_SystemInt32__SystemInt32",
+        "%": "SystemInt32.__op_Modulus__SystemInt32_SystemInt32__SystemInt32",
+        "==": "SystemInt32.__op_Equality__SystemInt32_SystemInt32__SystemBoolean",
+        "!=": "SystemInt32.__op_Inequality__SystemInt32_SystemInt32__SystemBoolean",
+        "<": "SystemInt32.__op_LessThan__SystemInt32_SystemInt32__SystemBoolean",
+        "<=": "SystemInt32.__op_LessThanOrEqual__SystemInt32_SystemInt32__SystemBoolean",
+        ">": "SystemInt32.__op_GreaterThan__SystemInt32_SystemInt32__SystemBoolean",
+        ">=": "SystemInt32.__op_GreaterThanOrEqual__SystemInt32_SystemInt32__SystemBoolean"
+      }
+    },
+    "SystemSingle": {
+      "operators": {
+        "+": "SystemSingle.__op_Addition__SystemSingle_SystemSingle__SystemSingle",
+        "-": "SystemSingle.__op_Subtraction__SystemSingle_SystemSingle__SystemSingle",
+        "*": "SystemSingle.__op_Multiplication__SystemSingle_SystemSingle__SystemSingle",
+        "/": "SystemSingle.__op_Division__SystemSingle_SystemSingle__SystemSingle",
+        "%": "SystemSingle.__op_Modulus__SystemSingle_SystemSingle__SystemSingle",
+        "==": "SystemSingle.__op_Equality__SystemSingle_SystemSingle__SystemBoolean",
+        "!=": "SystemSingle.__op_Inequality__SystemSingle_SystemSingle__SystemBoolean",
+        "<": "SystemSingle.__op_LessThan__SystemSingle_SystemSingle__SystemBoolean",
+        "<=": "SystemSingle.__op_LessThanOrEqual__SystemSingle_SystemSingle__SystemBoolean",
+        ">": "SystemSingle.__op_GreaterThan__SystemSingle_SystemSingle__SystemBoolean",
+        ">=": "SystemSingle.__op_GreaterThanOrEqual__SystemSingle_SystemSingle__SystemBoolean"
+      }
+    },
+    "SystemBoolean": {
+      "operators": {
+        "==": "SystemBoolean.__op_Equality__SystemBoolean_SystemBoolean__SystemBoolean",
+        "!=": "SystemBoolean.__op_Inequality__SystemBoolean_SystemBoolean__SystemBoolean",
+        "&&": "SystemBoolean.__op_ConditionalAnd__SystemBoolean_SystemBoolean__SystemBoolean",
+        "||": "SystemBoolean.__op_ConditionalOr__SystemBoolean_SystemBoolean__SystemBoolean",
+        "!": "SystemBoolean.__op_UnaryNegation__SystemBoolean__SystemBoolean"
+      }
+    },
+    "UnityEngineVector3": {
+      "staticProperties": {
+        "zero": "UnityEngineVector3.__get_zero__UnityEngineVector3",
+        "one": "UnityEngineVector3.__get_one__UnityEngineVector3",
+        "up": "UnityEngineVector3.__get_up__UnityEngineVector3",
+        "forward": "UnityEngineVector3.__get_forward__UnityEngineVector3",
+        "right": "UnityEngineVector3.__get_right__UnityEngineVector3"
+      },
+      "operators": {
+        "+": "UnityEngineVector3.__op_Addition__UnityEngineVector3_UnityEngineVector3__UnityEngineVector3",
+        "-": "UnityEngineVector3.__op_Subtraction__UnityEngineVector3_UnityEngineVector3__UnityEngineVector3",
+        "*_scalar": "UnityEngineVector3.__op_Multiply__UnityEngineVector3_SystemSingle__UnityEngineVector3"
+      }
+    },
+    "UnityEngineDebug": {
+      "staticMethods": {
+        "Log": "UnityEngineDebug.__Log__SystemObject__SystemVoid",
+        "LogWarning": "UnityEngineDebug.__LogWarning__SystemObject__SystemVoid",
+        "LogError": "UnityEngineDebug.__LogError__SystemObject__SystemVoid"
+      }
+    },
+    "UnityEngineTime": {
+      "staticProperties": {
+        "deltaTime": "UnityEngineTime.__get_deltaTime__SystemSingle",
+        "time": "UnityEngineTime.__get_time__SystemSingle"
+      }
+    },
+    "UnityEngineTransform": {
+      "properties": {
+        "position": {
+          "type": "UnityEngineVector3",
+          "get": "UnityEngineTransform.__get_position__UnityEngineVector3",
+          "set": "UnityEngineTransform.__set_position__UnityEngineVector3__SystemVoid"
+        },
+        "rotation": {
+          "type": "UnityEngineQuaternion",
+          "get": "UnityEngineTransform.__get_rotation__UnityEngineQuaternion",
+          "set": "UnityEngineTransform.__set_rotation__UnityEngineQuaternion__SystemVoid"
+        }
+      },
+      "methods": {
+        "Rotate": [
+          "UnityEngineTransform.__Rotate__UnityEngineVector3_SystemSingle__SystemVoid",
+          "UnityEngineTransform.__Rotate__UnityEngineVector3__SystemVoid"
+        ]
+      }
+    },
+    "VRCSDKBaseVRCNetworking": {
+      "staticProperties": {
+        "LocalPlayer": "VRCSDKBaseVRCNetworking.__get_LocalPlayer__VRCSDKBaseVRCPlayerApi"
+      },
+      "staticMethods": {
+        "IsOwner": "VRCSDKBaseVRCNetworking.__IsOwner__VRCSDKBaseVRCPlayerApi_UnityEngineGameObject__SystemBoolean",
+        "SetOwner": "VRCSDKBaseVRCNetworking.__SetOwner__VRCSDKBaseVRCPlayerApi_UnityEngineGameObject__SystemVoid"
+      }
+    },
+    "VRCSDKBaseVRCPlayerApi": {
+      "properties": {
+        "displayName": {
+          "type": "SystemString",
+          "get": "VRCSDKBaseVRCPlayerApi.__get_displayName__SystemString"
+        },
+        "isLocal": {
+          "type": "SystemBoolean",
+          "get": "VRCSDKBaseVRCPlayerApi.__get_isLocal__SystemBoolean"
+        },
+        "isMaster": {
+          "type": "SystemBoolean",
+          "get": "VRCSDKBaseVRCPlayerApi.__get_isMaster__SystemBoolean"
+        }
+      }
+    },
+    "UnityEngineMathf": {
+      "staticMethods": {
+        "Abs": "UnityEngineMathf.__Abs__SystemSingle__SystemSingle",
+        "Min": "UnityEngineMathf.__Min__SystemSingle_SystemSingle__SystemSingle",
+        "Max": "UnityEngineMathf.__Max__SystemSingle_SystemSingle__SystemSingle",
+        "Clamp": "UnityEngineMathf.__Clamp__SystemSingle_SystemSingle_SystemSingle__SystemSingle",
+        "Lerp": "UnityEngineMathf.__Lerp__SystemSingle_SystemSingle_SystemSingle__SystemSingle"
+      }
+    }
+  }
+}

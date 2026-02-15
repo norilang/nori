@@ -1,0 +1,30 @@
+pub let speed: float = 90.0
+let is_open: bool = false
+let current_angle: float = 0.0
+let target_angle: float = 0.0
+
+on Interact {
+    is_open = !is_open
+    if is_open {
+        target_angle = 90.0
+    } else {
+        target_angle = 0.0
+    }
+}
+
+on Update {
+    if current_angle != target_angle {
+        let step: float = speed * Time.deltaTime
+        if current_angle < target_angle {
+            current_angle = current_angle + step
+            if current_angle > target_angle {
+                current_angle = target_angle
+            }
+        } else {
+            current_angle = current_angle - step
+            if current_angle < target_angle {
+                current_angle = target_angle
+            }
+        }
+    }
+}

@@ -1,0 +1,7 @@
+on Start {
+    log("Hello from Nori!")
+}
+
+on Interact {
+    log("You clicked me!")
+}

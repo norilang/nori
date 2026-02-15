@@ -1,0 +1,20 @@
+# Unity meta files are needed for UPM packages
+# But ignore OS and IDE artifacts
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vs/
+.vscode/
+*.suo
+*.user
+*.userprefs
+*.sln
+*.csproj
+
+# Build artifacts
+[Bb]in/
+[Oo]bj/
