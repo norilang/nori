@@ -24,6 +24,7 @@ namespace Nori
                 {
                     File.WriteAllText(OutputPath, json);
                     Debug.Log($"[Nori] Catalog written to {OutputPath}");
+                    NoriSettings.instance.InvalidateCatalogCache();
                     NoriSettings.instance.ExternCatalogPath = OutputPath;
                 }
             }

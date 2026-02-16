@@ -29,8 +29,18 @@ namespace Nori
             set { _verboseDiagnostics = value; Save(true); }
         }
 
+        // Cached catalog to avoid re-reading JSON on every compile
+        private Compiler.IExternCatalog _cachedCatalog;
+        private string _cachedCatalogPath;
+
         public Compiler.IExternCatalog LoadCatalog()
         {
+            // Return cached catalog if the path hasn't changed
+            if (_cachedCatalog != null && _cachedCatalogPath == _externCatalogPath)
+                return _cachedCatalog;
+
+            _cachedCatalogPath = _externCatalogPath;
+
             // Try loading FullCatalog from JSON path
             if (!string.IsNullOrEmpty(_externCatalogPath) &&
                 System.IO.File.Exists(_externCatalogPath))
@@ -47,6 +57,7 @@ namespace Nori
                     {
                         Debug.Log($"[Nori] Loaded extern catalog from {_externCatalogPath} ({catalog.ExternCount} externs)");
                     }
+                    _cachedCatalog = catalog;
                     return catalog;
                 }
                 catch (System.Exception ex)
@@ -55,7 +66,14 @@ namespace Nori
                 }
             }
 
-            return Compiler.BuiltinCatalog.Instance;
+            _cachedCatalog = Compiler.BuiltinCatalog.Instance;
+            return _cachedCatalog;
+        }
+
+        public void InvalidateCatalogCache()
+        {
+            _cachedCatalog = null;
+            _cachedCatalogPath = null;
         }
     }
 }
