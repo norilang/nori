@@ -25,6 +25,12 @@ namespace Nori.Compiler
         // Current function name (null if in event handler or top-level)
         private string _currentFunctionName;
 
+        // Current function return type (resolved Udon type, null if void or not in function)
+        private string _currentFunctionReturnType;
+
+        // Extern catalog for implicit conversions
+        private readonly IExternCatalog _catalog;
+
         // This-object references
         private string _thisUdonBehaviour;
         private string _thisGameObject;
@@ -38,10 +44,12 @@ namespace Nori.Compiler
         private readonly List<(string varName, Expr initializer)> _deferredExprInits
             = new List<(string, Expr)>();
 
-        public IrLowering(ModuleDecl module, DiagnosticBag diagnostics)
+        public IrLowering(ModuleDecl module, DiagnosticBag diagnostics,
+            IExternCatalog catalog = null)
         {
             _module = module;
             _diagnostics = diagnostics;
+            _catalog = catalog ?? BuiltinCatalog.Instance;
         }
 
         public IrModule Lower()
@@ -196,10 +204,15 @@ namespace Nori.Compiler
             _currentBlock = block;
 
             // Declare parameter variables (event parameters are heap vars)
+            // Udon runtime mangles event param names: _onPlayerJoined + player → onPlayerJoinedPlayer
+            // We must declare the mangled name (runtime writes to it) and copy to the original name.
             foreach (var param in handler.Parameters)
             {
                 string paramType = TypeSystem.ResolveType(param.TypeName) ?? "SystemObject";
+                string mangledName = $"{label.Substring(1)}{char.ToUpper(param.Name[0])}{param.Name.Substring(1)}";
+                DeclareHeapVar(mangledName, paramType);
                 DeclareHeapVar(param.Name, paramType);
+                Emit(new IrCopy(mangledName, param.Name));
             }
 
             LowerBlock(handler.Body);
@@ -249,6 +262,10 @@ namespace Nori.Compiler
             var prevFunctionName = _currentFunctionName;
             _currentFunctionName = func.Name;
 
+            var prevReturnType = _currentFunctionReturnType;
+            _currentFunctionReturnType = func.ReturnTypeName != null
+                ? TypeSystem.ResolveType(func.ReturnTypeName) : null;
+
             // Copy param slots to local names
             foreach (var param in func.Parameters)
             {
@@ -263,6 +280,7 @@ namespace Nori.Compiler
             Emit(new IrJumpIndirect(retAddrVar));
 
             _currentFunctionName = prevFunctionName;
+            _currentFunctionReturnType = prevReturnType;
         }
 
         // --- Statement lowering ---
@@ -325,6 +343,16 @@ namespace Nori.Compiler
             if (lv.Initializer != null)
             {
                 string valVar = LowerExpr(lv.Initializer);
+
+                // Emit implicit conversion if expression type differs from variable type
+                string exprType = lv.Initializer.ResolvedType;
+                if (exprType != null && exprType != udonType)
+                {
+                    var conversion = _catalog.GetImplicitConversion(exprType, udonType);
+                    if (conversion != null)
+                        valVar = EmitConversion(valVar, conversion);
+                }
+
                 Emit(new IrCopy(valVar, varName));
             }
         }
@@ -366,6 +394,17 @@ namespace Nori.Compiler
             if (assign.Target is NameExpr nameTarget)
             {
                 string targetName = ResolveVarName(nameTarget);
+
+                // Emit implicit conversion if value type differs from target type
+                string targetType = nameTarget.ResolvedType;
+                string valueType = assign.Value.ResolvedType;
+                if (targetType != null && valueType != null && valueType != targetType)
+                {
+                    var conversion = _catalog.GetImplicitConversion(valueType, targetType);
+                    if (conversion != null)
+                        valueVar = EmitConversion(valueVar, conversion);
+                }
+
                 Emit(new IrCopy(valueVar, targetName));
             }
             else if (assign.Target is MemberExpr memberTarget)
@@ -554,6 +593,17 @@ namespace Nori.Compiler
             if (ret.Value != null && _currentFunctionName != null)
             {
                 string valVar = LowerExpr(ret.Value);
+
+                // Emit implicit conversion if return expression type differs from function return type
+                string exprType = ret.Value.ResolvedType;
+                if (_currentFunctionReturnType != null && exprType != null
+                    && exprType != _currentFunctionReturnType)
+                {
+                    var conversion = _catalog.GetImplicitConversion(exprType, _currentFunctionReturnType);
+                    if (conversion != null)
+                        valVar = EmitConversion(valVar, conversion);
+                }
+
                 string retValVar = $"__retval_{_currentFunctionName}";
                 Emit(new IrCopy(valVar, retValVar));
             }
@@ -596,7 +646,7 @@ namespace Nori.Compiler
                 Emit(new IrPush(_thisUdonBehaviour));
                 Emit(new IrPush(targetConst));
                 Emit(new IrPush(eventNameConst));
-                Emit(new IrExtern("VRCUdonCommonInterfacesIUdonEventReceiver.__SendCustomNetworkEvent__VRCSDKBaseVRCNetworkingNetworkEventTarget_SystemString__SystemVoid"));
+                Emit(new IrExtern("VRCUdonCommonInterfacesIUdonEventReceiver.__SendCustomNetworkEvent__VRCSDKBaseNetworkingNetworkEventTarget_SystemString__SystemVoid"));
             }
         }
 
@@ -719,7 +769,7 @@ namespace Nori.Compiler
                             // Emit Networking.get_LocalPlayer
                             string result = AllocTemp("VRCSDKBaseVRCPlayerApi");
                             Emit(new IrPush(result));
-                            Emit(new IrExtern("VRCSDKBaseVRCNetworking.__get_LocalPlayer__VRCSDKBaseVRCPlayerApi"));
+                            Emit(new IrExtern("VRCSDKBaseNetworking.__get_LocalPlayer__VRCSDKBaseVRCPlayerApi"));
                             return result;
                         }
                     }
@@ -987,14 +1037,30 @@ namespace Nori.Compiler
 
         private string LowerArrayLiteral(ArrayLiteralExpr arr)
         {
-            // For empty arrays, we'd need a type hint
-            if (arr.Elements.Count == 0)
-                return AllocTemp(arr.ResolvedType ?? "SystemObjectArray");
+            string arrayType = arr.ResolvedType ?? "SystemObjectArray";
+            string elemType = arrayType.EndsWith("Array")
+                ? arrayType.Substring(0, arrayType.Length - 5) : "SystemObject";
 
-            // For Phase 1, array literals are not fully supported in Udon
-            // but we can store the elements as individual heap vars
-            // This is a simplified approach
-            return AllocTemp(arr.ResolvedType ?? "SystemObjectArray");
+            // Create the array: push size, push result slot, call ctor
+            string sizeConst = GetOrCreateConstant("SystemInt32", arr.Elements.Count.ToString());
+            string arrayVar = AllocTemp(arrayType);
+            Emit(new IrPush(sizeConst));
+            Emit(new IrPush(arrayVar));
+            Emit(new IrExtern($"{arrayType}.__ctor__SystemInt32__{arrayType}"));
+
+            // Populate each element
+            string setExtern = $"{arrayType}.__Set__SystemInt32_{elemType}__SystemVoid";
+            for (int i = 0; i < arr.Elements.Count; i++)
+            {
+                string elemVar = LowerExpr(arr.Elements[i]);
+                string idxConst = GetOrCreateConstant("SystemInt32", i.ToString());
+                Emit(new IrPush(arrayVar));
+                Emit(new IrPush(idxConst));
+                Emit(new IrPush(elemVar));
+                Emit(new IrExtern(setExtern));
+            }
+
+            return arrayVar;
         }
 
         // --- Helpers ---

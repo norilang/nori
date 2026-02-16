@@ -33,7 +33,7 @@ namespace Nori.Compiler
                 return CompileResult.Failed(diagnostics, ast, metadata);
 
             // Phase 4: IR Lowering
-            var lowering = new IrLowering(ast, diagnostics);
+            var lowering = new IrLowering(ast, diagnostics, catalog);
             var ir = lowering.Lower();
 
             // Phase 5: Emit Udon Assembly
