@@ -38,6 +38,16 @@ namespace Nori.Compiler
         private readonly List<(string varName, Expr initializer)> _deferredExprInits
             = new List<(string, Expr)>();
 
+        // Types whose literals VRC's text assembler can resolve for data declarations.
+        // Non-primitive types (enums, VRC types) can't be declared — use SystemInt32 instead.
+        private static readonly HashSet<string> _dataSectionSafeTypes = new HashSet<string>
+        {
+            "SystemBoolean", "SystemByte", "SystemSByte",
+            "SystemInt16", "SystemUInt16", "SystemInt32", "SystemUInt32",
+            "SystemInt64", "SystemUInt64", "SystemSingle", "SystemDouble",
+            "SystemChar", "SystemString", "SystemObject",
+        };
+
         public IrLowering(ModuleDecl module, DiagnosticBag diagnostics)
         {
             _module = module;
@@ -47,8 +57,8 @@ namespace Nori.Compiler
         public IrModule Lower()
         {
             // Create "this" references
-            _thisUdonBehaviour = DeclareHeapVar("__this_VRCUdonCommonInterfacesIUdonEventReceiver_0",
-                "VRCUdonCommonInterfacesIUdonEventReceiver", "this");
+            _thisUdonBehaviour = DeclareHeapVar("__this_VRCUdonUdonBehaviour_0",
+                "VRCUdonUdonBehaviour", "this");
             _ir.FindVar(_thisUdonBehaviour).IsThis = true;
 
             _thisGameObject = DeclareHeapVar("__this_UnityEngineGameObject_0",
@@ -582,11 +592,14 @@ namespace Nori.Compiler
             else
             {
                 // Network send: SendCustomNetworkEvent
+                // Use SystemInt32 for the target enum value — VRC's text assembler can't
+                // resolve the enum type for data declarations, but the extern handles
+                // int→enum conversion at runtime.
                 string targetConst;
                 if (send.Target == "All")
-                    targetConst = GetOrCreateConstant("VRCSDKBaseVRCNetworkingNetworkEventTarget", "1");
+                    targetConst = GetOrCreateConstant("SystemInt32", "1");
                 else // Owner
-                    targetConst = GetOrCreateConstant("VRCSDKBaseVRCNetworkingNetworkEventTarget", "0");
+                    targetConst = GetOrCreateConstant("SystemInt32", "0");
 
                 string eventNameConst = GetOrCreateConstant("SystemString", $"\"{send.EventName}\"");
 
@@ -1024,7 +1037,21 @@ namespace Nori.Compiler
                 return existing;
 
             string name = $"__const_{_tempCounter++}_{udonType}";
-            _ir.HeapVars.Add(new IrHeapVar(name, udonType, value));
+
+            if (_dataSectionSafeTypes.Contains(udonType) || value == "null" ||
+                value == "this" || value.StartsWith("__label__"))
+            {
+                // Primitive types, null, this-refs, and label addresses are safe in the data section
+                _ir.HeapVars.Add(new IrHeapVar(name, udonType, value));
+            }
+            else
+            {
+                // Non-primitive types (enums, etc.): VRC's text assembler can't resolve
+                // these type names for data declarations. Store as SystemInt32 instead —
+                // Udon's extern execution handles int→enum conversion at runtime.
+                _ir.HeapVars.Add(new IrHeapVar(name, "SystemInt32", value));
+            }
+
             _constants[key] = name;
             return name;
         }

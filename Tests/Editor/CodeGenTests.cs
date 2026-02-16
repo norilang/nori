@@ -123,6 +123,16 @@ on Start {
         }
 
         [Test]
+        public void This_Variable_Uses_UdonBehaviour_Type()
+        {
+            var result = Compile("on Start { }");
+            Assert.IsTrue(result.Success, FormatErrors(result));
+            Assert.That(result.Uasm, Does.Contain("__this_VRCUdonUdonBehaviour_0"));
+            Assert.That(result.Uasm, Does.Contain("%VRCUdonUdonBehaviour"));
+            Assert.That(result.Uasm, Does.Not.Contain("VRCUdonCommonInterfacesIUdonEventReceiver"));
+        }
+
+        [Test]
         public void Arithmetic_Generates_Extern()
         {
             var result = Compile(@"
