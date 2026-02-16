@@ -26,3 +26,11 @@ docs-site.meta
 # VCC listing (separate repo)
 vcc-listing/
 vcc-listing.meta
+
+# Design/phase documents (internal planning, not shipped)
+DESIGN.md
+DESIGN.md.meta
+CHANGELOG.md
+CHANGELOG.md.meta
+phase-*.md
+phase-*.md.meta
