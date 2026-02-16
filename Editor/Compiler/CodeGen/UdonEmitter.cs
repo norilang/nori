@@ -34,6 +34,11 @@ namespace Nori.Compiler
                 {
                     offset += GetInstructionSize(instr);
                 }
+
+                // Empty blocks need a NOP so the next label doesn't alias this one.
+                // VRC's assembler rejects two symbols at the same address.
+                if (block.Instructions.Count == 0)
+                    offset += 4; // NOP = 4 bytes
             }
 
             // Resolve label constants for return addresses
@@ -134,6 +139,10 @@ namespace Nori.Compiler
                 {
                     EmitInstruction(sb, instr);
                 }
+
+                // Emit NOP for empty blocks to prevent address aliasing
+                if (block.Instructions.Count == 0)
+                    sb.AppendLine("        NOP");
 
                 sb.AppendLine();
             }
