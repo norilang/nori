@@ -18,6 +18,11 @@ let current: int = 0
 let is_ready: bool = false           // set after init succeeds
 
 on Start {
+    if lights == null {
+        warn("Light Cycler: assign GameObjects to the lights array in the inspector")
+        return
+    }
+
     // 'for i in 0..n' counts from 0 up to (not including) n
     for i in 0..lights.Length {
         // arr[i] accesses an array element by index

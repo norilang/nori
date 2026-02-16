@@ -7,6 +7,10 @@
  * Features shown: sync none, fn (void), event, send to All,
  *                 string interpolation {expr}, return (early exit),
  *                 comparison (>=)
+ *
+ * Note: 'send X to All' uses SendCustomNetworkEvent which is not
+ * implemented in VRChat ClientSim. This sample works correctly
+ * in VRChat but will error when clicked in ClientSim.
  */
 
 // 'pub let' — inspector-visible, not synced

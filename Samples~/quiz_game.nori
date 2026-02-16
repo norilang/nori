@@ -15,12 +15,12 @@
 pub let time_limit: float = 30.0
 
 // Array literals use square brackets
-let questions: string[] = [
+pub let questions: string[] = [
     "What language does Nori compile to?",
     "How many opcodes does Udon have?",
     "What keyword makes a variable public?"
 ]
-let answers: string[] = [
+pub let answers: string[] = [
     "Udon Assembly",
     "9",
     "pub"
@@ -65,11 +65,8 @@ fn calculate_score(correct: int, total: int) -> float {
         return 0.0
     }
 
-    // int-to-float implicit widening: correct (int) -> float
-    let pct: float = correct * 100 / total
-
-    // '/=' compound division
-    pct /= 1.0   // keeps it as float
+    // int-to-float implicit widening: correct (int) * 100.0 (float) -> float
+    let pct: float = correct * 100.0 / total
 
     return pct
 }

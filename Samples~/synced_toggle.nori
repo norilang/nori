@@ -1,16 +1,19 @@
 /*
- * Synced Toggle — Networked on/off switch with ownership
+ * Synced Toggle — Networked on/off switch
  *
- * Attach to an interactive object. When a player clicks it,
- * the toggle state is synced to everyone via VRChat networking.
- * Only the owner can modify synced variables.
+ * Attach to an interactive object (needs a Collider).
+ * When a player clicks it, the target GameObject is toggled
+ * on/off and the state is synced to everyone via VRChat networking.
  *
- * Features shown: sync linear, sync smooth,
+ * Features shown: pub, sync none, sync linear, sync smooth,
  *                 Networking.IsOwner(), Networking.SetOwner(),
  *                 RequestSerialization(), localPlayer, gameObject,
  *                 on VariableChange, on PreSerialization,
- *                 send to Owner
+ *                 GameObject.SetActive()
  */
+
+/// The object to toggle on and off
+pub let target: GameObject
 
 // 'sync none' — replicated without interpolation (good for bools)
 sync none is_on: bool = false
@@ -25,19 +28,16 @@ let pending_toggle: bool = false
 
 on Start {
     log("Synced toggle ready")
-    // 'localPlayer' is the built-in local VRCPlayerApi
     log("Local player: {localPlayer.displayName}")
 }
 
 on Interact {
     // Check ownership before modifying synced vars
-    // Networking.IsOwner(player, gameObject) -> bool
     if Networking.IsOwner(localPlayer, gameObject) {
         // Already owner — toggle directly
         do_toggle()
     } else {
-        // Request ownership first, then toggle
-        // Networking.SetOwner(player, gameObject)
+        // Request ownership first, then toggle in PreSerialization
         Networking.SetOwner(localPlayer, gameObject)
         pending_toggle = true
         log("Requested ownership...")
@@ -46,6 +46,10 @@ on Interact {
 
 fn do_toggle() {
     is_on = !is_on
+    if target != null {
+        target.SetActive(is_on)
+    }
+
     if is_on {
         brightness = 1.0
         smooth_value = 1.0
@@ -62,6 +66,9 @@ fn do_toggle() {
 // 'on VariableChange' fires when synced variables are updated
 // from the network (on remote players)
 on VariableChange {
+    if target != null {
+        target.SetActive(is_on)
+    }
     log("Received sync — is_on: {is_on}, brightness: {brightness}")
 }
 

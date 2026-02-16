@@ -22,6 +22,11 @@ let last_distance: float = 0.0
 let is_ready: bool = false           // tracks whether target is set
 
 on Start {
+    if target == null {
+        warn("Follower: assign a target GameObject in the inspector")
+        return
+    }
+
     // transform.position gets this object's world position
     last_distance = Vector3.Distance(
         transform.position,
@@ -33,6 +38,9 @@ on Start {
 
 on Update {
     if !is_ready {
+        return
+    }
+    if target == null {
         return
     }
 
