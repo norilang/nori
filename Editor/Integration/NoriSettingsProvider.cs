@@ -65,6 +65,14 @@ namespace Nori
                 CatalogScraper.Generate();
             }
 
+            if (settings.IsCatalogStale())
+            {
+                EditorGUILayout.HelpBox(
+                    "The extern catalog may be outdated. The VRC SDK has been updated since " +
+                    "the catalog was last generated. Click 'Generate Catalog from VRC SDK' to update it.",
+                    MessageType.Warning);
+            }
+
             if (string.IsNullOrEmpty(settings.ExternCatalogPath))
             {
                 EditorGUILayout.HelpBox(

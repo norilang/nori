@@ -10,6 +10,8 @@ namespace Nori
         [SerializeField] private string _externCatalogPath = "";
         [SerializeField] private bool _autoCompile = true;
         [SerializeField] private bool _verboseDiagnostics;
+        [SerializeField] private string _catalogGeneratedFromDll = "";
+        [SerializeField] private long _catalogGeneratedTimestamp;
 
         public string ExternCatalogPath
         {
@@ -74,6 +76,35 @@ namespace Nori
         {
             _cachedCatalog = null;
             _cachedCatalogPath = null;
+        }
+
+        public string CatalogGeneratedFromDll
+        {
+            get => _catalogGeneratedFromDll;
+            set { _catalogGeneratedFromDll = value; Save(true); }
+        }
+
+        public long CatalogGeneratedTimestamp
+        {
+            get => _catalogGeneratedTimestamp;
+            set { _catalogGeneratedTimestamp = value; Save(true); }
+        }
+
+        public bool IsCatalogStale()
+        {
+            if (string.IsNullOrEmpty(_externCatalogPath) ||
+                !System.IO.File.Exists(_externCatalogPath))
+                return false;
+
+            if (_catalogGeneratedTimestamp == 0)
+                return true;
+
+            if (string.IsNullOrEmpty(_catalogGeneratedFromDll) ||
+                !System.IO.File.Exists(_catalogGeneratedFromDll))
+                return true;
+
+            long currentTicks = System.IO.File.GetLastWriteTimeUtc(_catalogGeneratedFromDll).Ticks;
+            return currentTicks != _catalogGeneratedTimestamp;
         }
     }
 }

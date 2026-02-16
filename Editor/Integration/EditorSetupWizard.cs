@@ -133,6 +133,24 @@ namespace Nori
                 EditorStyles.miniLabel);
             EditorGUILayout.EndHorizontal();
 
+            // Catalog status
+            string catalogPath = NoriSettings.instance.ExternCatalogPath;
+            bool hasCatalog = !string.IsNullOrEmpty(catalogPath) && File.Exists(catalogPath);
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Catalog:", GUILayout.Width(70));
+            EditorGUILayout.LabelField(
+                hasCatalog ? Path.GetFileName(catalogPath) : "not generated",
+                EditorStyles.miniLabel);
+            EditorGUILayout.EndHorizontal();
+
+            if (NoriSettings.instance.IsCatalogStale())
+            {
+                EditorGUILayout.HelpBox(
+                    "The extern catalog may be outdated. The VRC SDK has been updated since " +
+                    "the catalog was last generated. Rebuild to regenerate it.",
+                    MessageType.Warning);
+            }
+
             EditorGUILayout.Space(8);
 
             // Build button
@@ -341,6 +359,10 @@ namespace Nori
             _isBuilding = true;
             _buildOutput = "";
 
+            // Generate extern catalog before building
+            EditorUtility.DisplayProgressBar("Nori", "Generating extern catalog...", 0.1f);
+            CatalogScraper.Generate();
+
             EditorUtility.DisplayProgressBar("Nori", "Building LSP server...", 0.3f);
 
             try
@@ -369,8 +391,22 @@ namespace Nori
                     {
                         _lspBinaryPath = binaryPath;
                         EditorPrefs.SetString(LspBinaryPathPref, _lspBinaryPath);
-                        _buildOutput = $"Build succeeded. Binary: {binaryPath}";
-                        Debug.Log($"[Nori] LSP server built: {binaryPath}");
+
+                        // Copy catalog to publish dir if it exists
+                        string catalogSource = "ProjectSettings/NoriCatalog.json";
+                        string catalogDest = Path.Combine(publishDir, "extern-catalog.json");
+                        if (File.Exists(catalogSource))
+                        {
+                            File.Copy(catalogSource, catalogDest, true);
+                            _buildOutput = $"Build succeeded.\nBinary: {binaryPath}\nCatalog: {catalogDest}";
+                            Debug.Log($"[Nori] LSP server built: {binaryPath}");
+                            Debug.Log($"[Nori] Catalog copied to: {catalogDest}");
+                        }
+                        else
+                        {
+                            _buildOutput = $"Build succeeded. Binary: {binaryPath}\n(No catalog — VRC SDK not available)";
+                            Debug.Log($"[Nori] LSP server built: {binaryPath}");
+                        }
                     }
                     else
                     {

@@ -14,7 +14,17 @@ This directory contains .NET tooling for the Nori language, built outside of Uni
 
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or later
 
-## Quick Start
+## Quick Start (Unity Editor)
+
+The easiest way to build the LSP server and generate the extern catalog is from Unity:
+
+1. Open your Unity project
+2. Go to **Tools > Nori > Setup Editor...**
+3. Click **Build LSP Server**
+
+The wizard automatically generates the extern catalog (if the VRC SDK is installed), builds the server for your platform, and copies the catalog next to the binary. The resulting paths are displayed and can be copied to your clipboard.
+
+## Building from CLI
 
 ```bash
 # Build everything
@@ -49,6 +59,8 @@ dotnet publish Nori.Lsp -r linux-x64 -c Release
 ```
 
 Binaries are output to `Nori.Lsp/bin/Release/net8.0/{rid}/publish/nori-lsp{.exe}`.
+
+> **Note:** CLI builds do not include the extern catalog. Generate it separately in Unity via **Tools > Nori > Generate Extern Catalog**, then pass it to the server with `--catalog`.
 
 ---
 

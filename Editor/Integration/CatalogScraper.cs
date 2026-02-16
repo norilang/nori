@@ -26,11 +26,30 @@ namespace Nori
                     Debug.Log($"[Nori] Catalog written to {OutputPath}");
                     NoriSettings.instance.InvalidateCatalogCache();
                     NoriSettings.instance.ExternCatalogPath = OutputPath;
+                    RecordSdkMetadata();
                 }
             }
             catch (Exception ex)
             {
                 Debug.LogError($"[Nori] Catalog generation failed: {ex.Message}\n{ex.StackTrace}");
+            }
+        }
+
+        private static void RecordSdkMetadata()
+        {
+            try
+            {
+                var managerType = FindType("VRC.Udon.Editor.UdonEditorManager");
+                if (managerType == null) return;
+                string dllPath = managerType.Assembly.Location;
+                if (string.IsNullOrEmpty(dllPath) || !File.Exists(dllPath)) return;
+                NoriSettings.instance.CatalogGeneratedFromDll = dllPath;
+                NoriSettings.instance.CatalogGeneratedTimestamp =
+                    File.GetLastWriteTimeUtc(dllPath).Ticks;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[Nori] Could not record SDK metadata: {ex.Message}");
             }
         }
 

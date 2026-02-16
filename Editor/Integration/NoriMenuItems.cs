@@ -6,6 +6,18 @@ namespace Nori
 {
     public static class NoriMenuItems
     {
+        [InitializeOnLoadMethod]
+        private static void CheckCatalogStaleness()
+        {
+            if (NoriSettings.instance.IsCatalogStale())
+            {
+                Debug.LogWarning(
+                    "[Nori] The extern catalog may be outdated. The VRC SDK has been updated " +
+                    "since the catalog was last generated. Regenerate it via " +
+                    "Tools > Nori > Generate Extern Catalog or Project Settings > Nori.");
+            }
+        }
+
         [MenuItem("Tools/Nori/Compile All Nori Scripts")]
         public static void CompileAll()
         {
