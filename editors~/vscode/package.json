@@ -2,7 +2,7 @@
   "name": "nori-lang",
   "displayName": "Nori Language",
   "description": "Language support for Nori, a programming language for VRChat worlds",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "nori",
   "license": "MIT",
   "engines": {
