@@ -88,13 +88,13 @@
         ]
       }
     },
-    "VRCSDKBaseVRCNetworking": {
+    "VRCSDKBaseNetworking": {
       "staticProperties": {
-        "LocalPlayer": "VRCSDKBaseVRCNetworking.__get_LocalPlayer__VRCSDKBaseVRCPlayerApi"
+        "LocalPlayer": "VRCSDKBaseNetworking.__get_LocalPlayer__VRCSDKBaseVRCPlayerApi"
       },
       "staticMethods": {
-        "IsOwner": "VRCSDKBaseVRCNetworking.__IsOwner__VRCSDKBaseVRCPlayerApi_UnityEngineGameObject__SystemBoolean",
-        "SetOwner": "VRCSDKBaseVRCNetworking.__SetOwner__VRCSDKBaseVRCPlayerApi_UnityEngineGameObject__SystemVoid"
+        "IsOwner": "VRCSDKBaseNetworking.__IsOwner__VRCSDKBaseVRCPlayerApi_UnityEngineGameObject__SystemBoolean",
+        "SetOwner": "VRCSDKBaseNetworking.__SetOwner__VRCSDKBaseVRCPlayerApi_UnityEngineGameObject__SystemVoid"
       }
     },
     "VRCSDKBaseVRCPlayerApi": {

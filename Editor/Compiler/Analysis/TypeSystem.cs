@@ -149,7 +149,7 @@ namespace Nori.Compiler
             switch (name)
             {
                 case "Time": return "UnityEngineTime";
-                case "Networking": return "VRCSDKBaseVRCNetworking";
+                case "Networking": return "VRCSDKBaseNetworking";
                 case "Vector3": return "UnityEngineVector3";
                 case "Vector2": return "UnityEngineVector2";
                 case "Vector4": return "UnityEngineVector4";

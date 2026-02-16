@@ -108,7 +108,7 @@ namespace Nori.Compiler
             // Hardcoded static type names (always available)
             _currentScope.Define(new Symbol("Time", "UnityEngineTime",
                 SourceSpan.None, SymbolKind.StaticType));
-            _currentScope.Define(new Symbol("Networking", "VRCSDKBaseVRCNetworking",
+            _currentScope.Define(new Symbol("Networking", "VRCSDKBaseNetworking",
                 SourceSpan.None, SymbolKind.StaticType));
             _currentScope.Define(new Symbol("Vector3", "UnityEngineVector3",
                 SourceSpan.None, SymbolKind.StaticType));

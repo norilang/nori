@@ -275,17 +275,17 @@ namespace Nori.Compiler
 
         private void RegisterNetworkingOperations()
         {
-            _knownTypes.Add("VRCSDKBaseVRCNetworking");
+            _knownTypes.Add("VRCSDKBaseNetworking");
 
-            AddStaticProperty("VRCSDKBaseVRCNetworking", "LocalPlayer", "VRCSDKBaseVRCPlayerApi",
-                "VRCSDKBaseVRCNetworking.__get_LocalPlayer__VRCSDKBaseVRCPlayerApi");
+            AddStaticProperty("VRCSDKBaseNetworking", "LocalPlayer", "VRCSDKBaseVRCPlayerApi",
+                "VRCSDKBaseNetworking.__get_LocalPlayer__VRCSDKBaseVRCPlayerApi");
 
-            AddStaticMethod("VRCSDKBaseVRCNetworking", "IsOwner", new ExternSignature(
-                "VRCSDKBaseVRCNetworking.__IsOwner__VRCSDKBaseVRCPlayerApi_UnityEngineGameObject__SystemBoolean",
+            AddStaticMethod("VRCSDKBaseNetworking", "IsOwner", new ExternSignature(
+                "VRCSDKBaseNetworking.__IsOwner__VRCSDKBaseVRCPlayerApi_UnityEngineGameObject__SystemBoolean",
                 new[] { "VRCSDKBaseVRCPlayerApi", "UnityEngineGameObject" }, "SystemBoolean", false));
 
-            AddStaticMethod("VRCSDKBaseVRCNetworking", "SetOwner", new ExternSignature(
-                "VRCSDKBaseVRCNetworking.__SetOwner__VRCSDKBaseVRCPlayerApi_UnityEngineGameObject__SystemVoid",
+            AddStaticMethod("VRCSDKBaseNetworking", "SetOwner", new ExternSignature(
+                "VRCSDKBaseNetworking.__SetOwner__VRCSDKBaseVRCPlayerApi_UnityEngineGameObject__SystemVoid",
                 new[] { "VRCSDKBaseVRCPlayerApi", "UnityEngineGameObject" }, "SystemVoid", false));
         }
 
@@ -314,8 +314,8 @@ namespace Nori.Compiler
 
             AddMethod("VRCUdonCommonInterfacesIUdonEventReceiver", "SendCustomNetworkEvent",
                 new ExternSignature(
-                    "VRCUdonCommonInterfacesIUdonEventReceiver.__SendCustomNetworkEvent__VRCSDKBaseVRCNetworkingNetworkEventTarget_SystemString__SystemVoid",
-                    new[] { "VRCSDKBaseVRCNetworkingNetworkEventTarget", "SystemString" },
+                    "VRCUdonCommonInterfacesIUdonEventReceiver.__SendCustomNetworkEvent__VRCSDKBaseNetworkingNetworkEventTarget_SystemString__SystemVoid",
+                    new[] { "VRCSDKBaseNetworkingNetworkEventTarget", "SystemString" },
                     "SystemVoid", true));
 
             AddMethod("VRCUdonCommonInterfacesIUdonEventReceiver", "RequestSerialization",
