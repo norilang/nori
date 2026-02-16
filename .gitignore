@@ -22,3 +22,7 @@ Thumbs.db
 # Docs site (separate repo)
 docs-site/
 docs-site.meta
+
+# VCC listing (separate repo)
+vcc-listing/
+vcc-listing.meta

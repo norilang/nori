@@ -4,7 +4,9 @@ A clear, friendly programming language for VRChat worlds that compiles to Udon A
 
 ## Installation
 
-Add via Unity Package Manager using the git URL, or copy the package to your project's `Packages/` directory.
+**Recommended:** Install via [VRChat Creator Companion](https://vcc.nori-lang.dev). Click **Add to VCC** on that page, then add the Nori package to your project from the VCC package list.
+
+Alternatively, add the package directly in Unity via **Window > Package Manager > Add package from git URL** using `https://github.com/norilang/nori.git?path=Packages/dev.nori.compiler`.
 
 ## Usage
 
@@ -21,6 +23,23 @@ on Interact {
     log("You clicked me!")
 }
 ```
+
+## Editor Support
+
+Nori includes an LSP server that provides real-time editor features for `.nori` files:
+
+- Diagnostics (error squiggles as you type)
+- Autocomplete (types, members, events)
+- Hover information (types, signatures, extern mappings)
+- Go-to-definition
+- Signature help
+- Document outline
+
+Supported editors: **VS Code** (dedicated extension), **JetBrains Rider**, and **Visual Studio**.
+
+**Quick start:** In Unity, go to **Tools > Nori > Setup Editor...** to launch the setup wizard. It builds the LSP server and configures your editor in a few clicks.
+
+See [nori-lang.dev/editors](https://nori-lang.dev/editors/) for full setup instructions.
 
 ## Documentation
 

@@ -34,6 +34,12 @@ namespace Nori
             SettingsService.OpenProjectSettings("Project/Nori");
         }
 
+        [MenuItem("Tools/Nori/Setup Editor...")]
+        public static void OpenEditorSetup()
+        {
+            EditorSetupWizard.ShowWindow();
+        }
+
         [MenuItem("Tools/Nori/About Nori")]
         public static void ShowAbout()
         {
