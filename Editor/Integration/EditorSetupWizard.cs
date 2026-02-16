@@ -25,8 +25,8 @@ namespace Nori
         public static void ShowWindow()
         {
             var window = GetWindow<EditorSetupWizard>("Nori Editor Setup");
-            window.minSize = new Vector2(450, 400);
-            window.maxSize = new Vector2(450, 400);
+            window.minSize = new Vector2(450, 500);
+            window.maxSize = new Vector2(600, 800);
         }
 
         private void OnEnable()

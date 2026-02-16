@@ -61,7 +61,7 @@ namespace Nori
                 "A clear, friendly programming language\nfor VRChat worlds.\n\n" +
                 "Compiles to Udon Assembly.\n\n" +
                 "https://nori-lang.dev\n" +
-                "https://github.com/nori-lang/nori",
+                "https://github.com/norilang/nori",
                 "OK");
         }
     }

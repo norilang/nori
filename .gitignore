@@ -19,9 +19,11 @@ Thumbs.db
 [Bb]in/
 [Oo]bj/
 
-# Docs site (separate repo)
+# Docs site (tilde suffix makes Unity ignore it; rename when possible)
 docs-site/
 docs-site.meta
+docs-site~/
+docs-site~.meta
 
 # VCC listing (separate repo)
 vcc-listing/
