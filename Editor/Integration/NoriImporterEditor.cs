@@ -79,6 +79,31 @@ namespace Nori
 
             EditorGUILayout.EndScrollView();
 
+            // Companion program asset
+            EditorGUILayout.Space(10);
+            EditorGUILayout.LabelField("Program Asset", EditorStyles.boldLabel);
+
+            string companionPath = NoriImporter.GetCompanionAssetPath(importer.assetPath);
+            var companionAsset = AssetDatabase.LoadAssetAtPath<Object>(companionPath);
+
+            if (companionAsset != null)
+            {
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.ObjectField(companionAsset, typeof(Object), false);
+                if (GUILayout.Button("Ping", GUILayout.Width(50)))
+                {
+                    EditorGUIUtility.PingObject(companionAsset);
+                }
+                EditorGUILayout.EndHorizontal();
+            }
+            else
+            {
+                EditorGUILayout.HelpBox(
+                    "No companion program asset found. Recompile to generate it.\n" +
+                    "The VRChat SDK must be installed for program asset generation.",
+                    MessageType.Warning);
+            }
+
             // Declarations summary
             if (metadata != null)
             {
