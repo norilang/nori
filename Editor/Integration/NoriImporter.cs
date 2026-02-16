@@ -9,7 +9,7 @@ using Nori.Compiler;
 
 namespace Nori
 {
-    [ScriptedImporter(1, "nori")]
+    [ScriptedImporter(2, "nori")]
     public class NoriImporter : ScriptedImporter
     {
         // Cached reflection lookups
@@ -39,6 +39,15 @@ namespace Nori
 
             _programAssetType = Type.GetType(
                 "VRC.Udon.Editor.ProgramSources.UdonAssemblyProgramAsset, VRC.Udon.Editor");
+        }
+
+        /// <summary>
+        /// Returns the companion .asset path for a given .nori file.
+        /// Example: "Assets/Scripts/Timer.nori" → "Assets/Scripts/Timer.nori.asset"
+        /// </summary>
+        public static string GetCompanionAssetPath(string noriPath)
+        {
+            return noriPath + ".asset";
         }
 
         public override void OnImportAsset(AssetImportContext ctx)
@@ -83,23 +92,46 @@ namespace Nori
             uasmAsset.name = "Generated Assembly";
             ctx.AddObjectToAsset("uasm", uasmAsset);
 
-            // Try to create UdonAssemblyProgramAsset via reflection
-            TryCreateUdonProgram(ctx, result.Uasm);
+            // Schedule companion .asset creation/update after import completes
+            string noriPath = ctx.assetPath;
+            string uasm = result.Uasm;
+            // Name must match the companion filename stem (e.g., "Timer.nori" for "Timer.nori.asset")
+            // so Unity doesn't warn about a main-object/filename mismatch.
+            string displayName = Path.GetFileName(noriPath);
+            EditorApplication.delayCall += () => CreateOrUpdateCompanionAsset(noriPath, uasm, displayName);
         }
 
-        private void TryCreateUdonProgram(AssetImportContext ctx, string uasm)
+        /// <summary>
+        /// Creates or updates a standalone UdonAssemblyProgramAsset companion file.
+        /// This runs as a deferred callback after the ScriptedImporter finishes.
+        /// </summary>
+        internal static void CreateOrUpdateCompanionAsset(string noriPath, string uasm, string displayName)
         {
             EnsureReflectionCache();
 
             if (_programAssetType == null)
-            {
-                // VRChat SDK not installed
-                return;
-            }
+                return; // VRChat SDK not installed
+
+            string companionPath = GetCompanionAssetPath(noriPath);
 
             try
             {
-                var programAsset = ScriptableObject.CreateInstance(_programAssetType);
+                // Load existing or create new
+                var existing = AssetDatabase.LoadAssetAtPath(companionPath, _programAssetType);
+                ScriptableObject programAsset;
+
+                if (existing != null)
+                {
+                    programAsset = (ScriptableObject)existing;
+                }
+                else
+                {
+                    programAsset = ScriptableObject.CreateInstance(_programAssetType);
+                    AssetDatabase.CreateAsset(programAsset, companionPath);
+                }
+
+                // Set the display name
+                programAsset.name = displayName;
 
                 // Set the assembly source text via SerializedObject
                 var serializedObj = new SerializedObject(programAsset);
@@ -110,47 +142,22 @@ namespace Nori
                     serializedObj.ApplyModifiedPropertiesWithoutUndo();
                 }
 
-                ctx.AddObjectToAsset("program", programAsset);
+                EditorUtility.SetDirty(programAsset);
 
-                // RefreshProgram calls AssetDatabase.CreateAsset/SaveAssets/Refresh internally,
-                // which are restricted during asset importing. Defer to after import completes.
-                string assetPath = ctx.assetPath;
-                EditorApplication.delayCall += () => DeferredRefreshProgram(assetPath);
-            }
-            catch (Exception e)
-            {
-                Debug.LogWarning($"[Nori] Failed to create Udon program asset: {e.Message}");
-            }
-        }
-
-        private static void DeferredRefreshProgram(string assetPath)
-        {
-            if (!_reflectionCacheInitialized)
-                EnsureReflectionCache();
-            if (_programAssetType == null) return;
-
-            try
-            {
-                var assets = AssetDatabase.LoadAllAssetsAtPath(assetPath);
-                if (assets == null) return;
-
-                foreach (var asset in assets)
+                // Assemble the program: this triggers VRC's assembler which populates
+                // serializedUdonProgramAsset and creates the binary in Assets/SerializedUdonPrograms/
+                var refreshMethod = _programAssetType.GetMethod("RefreshProgram",
+                    BindingFlags.Public | BindingFlags.Instance);
+                if (refreshMethod != null)
                 {
-                    if (asset != null && _programAssetType.IsInstanceOfType(asset))
-                    {
-                        var refreshMethod = _programAssetType.GetMethod("RefreshProgram",
-                            BindingFlags.Public | BindingFlags.Instance);
-                        if (refreshMethod != null)
-                        {
-                            refreshMethod.Invoke(asset, null);
-                        }
-                        break;
-                    }
+                    refreshMethod.Invoke(programAsset, null);
                 }
+
+                AssetDatabase.SaveAssets();
             }
             catch (Exception e)
             {
-                Debug.LogWarning($"[Nori] Deferred Udon program refresh failed: {e.Message}");
+                Debug.LogWarning($"[Nori] Failed to create/update companion asset at '{companionPath}': {e.Message}");
             }
         }
     }
