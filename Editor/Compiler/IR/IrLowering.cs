@@ -38,16 +38,6 @@ namespace Nori.Compiler
         private readonly List<(string varName, Expr initializer)> _deferredExprInits
             = new List<(string, Expr)>();
 
-        // Types whose literals VRC's text assembler can resolve for data declarations.
-        // Non-primitive types (enums, VRC types) can't be declared — use SystemInt32 instead.
-        private static readonly HashSet<string> _dataSectionSafeTypes = new HashSet<string>
-        {
-            "SystemBoolean", "SystemByte", "SystemSByte",
-            "SystemInt16", "SystemUInt16", "SystemInt32", "SystemUInt32",
-            "SystemInt64", "SystemUInt64", "SystemSingle", "SystemDouble",
-            "SystemChar", "SystemString", "SystemObject",
-        };
-
         public IrLowering(ModuleDecl module, DiagnosticBag diagnostics)
         {
             _module = module;
@@ -1037,20 +1027,7 @@ namespace Nori.Compiler
                 return existing;
 
             string name = $"__const_{_tempCounter++}_{udonType}";
-
-            if (_dataSectionSafeTypes.Contains(udonType) || value == "null" ||
-                value == "this" || value.StartsWith("__label__"))
-            {
-                // Primitive types, null, this-refs, and label addresses are safe in the data section
-                _ir.HeapVars.Add(new IrHeapVar(name, udonType, value));
-            }
-            else
-            {
-                // Non-primitive types (enums, etc.): VRC's text assembler can't resolve
-                // these type names for data declarations. Store as SystemInt32 instead —
-                // Udon's extern execution handles int→enum conversion at runtime.
-                _ir.HeapVars.Add(new IrHeapVar(name, "SystemInt32", value));
-            }
+            _ir.HeapVars.Add(new IrHeapVar(name, udonType, value));
 
             _constants[key] = name;
             return name;
