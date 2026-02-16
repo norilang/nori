@@ -25,6 +25,7 @@ namespace Nori
         private bool _showUasm;
         private bool _showDisassembly;
         private bool _showPublicVars = true;
+        private bool _showDiagnostics = true;
         private Vector2 _uasmScrollPos;
         private Vector2 _disassemblyScrollPos;
         private string _cachedDisassembly;
@@ -73,10 +74,16 @@ namespace Nori
                 _getVariableNamesMethod = symbolsProp?.GetGetMethod();
             }
 
-            _tryGetVariableValueMethod = variableTableType.GetMethod("TryGetVariableValue",
-                ReflectionBindingFlags.Public | ReflectionBindingFlags.Instance);
-            _trySetVariableValueMethod = variableTableType.GetMethod("TrySetVariableValue",
-                ReflectionBindingFlags.Public | ReflectionBindingFlags.Instance);
+            // TryGetVariableValue/TrySetVariableValue have generic overloads;
+            // pick the non-generic (object) variants to avoid AmbiguousMatchException
+            foreach (var m in variableTableType.GetMethods(
+                ReflectionBindingFlags.Public | ReflectionBindingFlags.Instance))
+            {
+                if (m.Name == "TryGetVariableValue" && !m.IsGenericMethod)
+                    _tryGetVariableValueMethod = m;
+                else if (m.Name == "TrySetVariableValue" && !m.IsGenericMethod)
+                    _trySetVariableValueMethod = m;
+            }
         }
 
         private void OnEnable()
@@ -84,12 +91,70 @@ namespace Nori
             var proxy = (NoriBehaviour)target;
             EnsureCache();
             EnsureVariableReflection();
+
+            if (proxy is NoriScript && !SyncNoriScriptPath(proxy as NoriScript))
+                return;
+
             EnsureCompanionAsset(proxy);
             EnsureUdonBehaviour(proxy);
+
+            EditorApplication.projectChanged += OnProjectChanged;
+        }
+
+        private void OnDisable()
+        {
+            EditorApplication.projectChanged -= OnProjectChanged;
+        }
+
+        private void OnProjectChanged()
+        {
+            _cachedDisassembly = null;
+            var proxy = (NoriBehaviour)target;
+            if (proxy is NoriScript ns)
+                SyncNoriScriptPath(ns);
+            EnsureCompanionAsset(proxy);
+            EnsureUdonBehaviour(proxy);
+            Repaint();
+        }
+
+        /// <summary>
+        /// Syncs the NoriScript's internal path field from its TextAsset reference.
+        /// Returns false if no valid .nori source is assigned.
+        /// </summary>
+        private bool SyncNoriScriptPath(NoriScript noriScript)
+        {
+            if (noriScript._noriSource == null)
+            {
+                if (!string.IsNullOrEmpty(noriScript.NoriScriptPath))
+                {
+                    Undo.RecordObject(noriScript, "Clear Nori script path");
+                    noriScript.SetScriptPath("");
+                    noriScript.companionAssetPath = "";
+                    EditorUtility.SetDirty(noriScript);
+                }
+                return false;
+            }
+
+            string assetPath = AssetDatabase.GetAssetPath(noriScript._noriSource);
+            if (string.IsNullOrEmpty(assetPath) || !assetPath.EndsWith(".nori"))
+                return false;
+
+            if (assetPath != noriScript.NoriScriptPath)
+            {
+                Undo.RecordObject(noriScript, "Set Nori script path");
+                noriScript.SetScriptPath(assetPath);
+                noriScript.companionAssetPath = "";
+                EditorUtility.SetDirty(noriScript);
+            }
+
+            return true;
         }
 
         private void EnsureCompanionAsset(NoriBehaviour proxy)
         {
+            if (string.IsNullOrEmpty(proxy.NoriScriptPath))
+                return;
+
             if (!string.IsNullOrEmpty(proxy.companionAssetPath))
             {
                 var existing = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(
@@ -120,6 +185,9 @@ namespace Nori
 
         private void EnsureUdonBehaviour(NoriBehaviour proxy)
         {
+            if (string.IsNullOrEmpty(proxy.NoriScriptPath))
+                return;
+
             if (_udonBehaviourType == null || _programSourceType == null)
                 return;
 
@@ -177,6 +245,51 @@ namespace Nori
             EditorGUILayout.LabelField(proxy.DisplayName, EditorStyles.boldLabel);
             EditorGUILayout.EndHorizontal();
 
+            // NoriScript: TextAsset picker
+            if (proxy is NoriScript noriScript)
+            {
+                EditorGUILayout.Space(3);
+                EditorGUI.BeginChangeCheck();
+                var newSource = (TextAsset)EditorGUILayout.ObjectField(
+                    "Nori Source", noriScript._noriSource, typeof(TextAsset), false);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    // Validate .nori extension
+                    if (newSource != null)
+                    {
+                        string path = AssetDatabase.GetAssetPath(newSource);
+                        if (!path.EndsWith(".nori"))
+                        {
+                            Debug.LogWarning("[Nori] Only .nori files can be assigned to NoriScript.");
+                            newSource = null;
+                        }
+                    }
+
+                    Undo.RecordObject(noriScript, "Change Nori source");
+                    noriScript._noriSource = newSource;
+                    EditorUtility.SetDirty(noriScript);
+                    _cachedDisassembly = null;
+
+                    if (SyncNoriScriptPath(noriScript))
+                    {
+                        EnsureCompanionAsset(noriScript);
+                        EnsureUdonBehaviour(noriScript);
+                    }
+                }
+
+                if (noriScript._noriSource == null)
+                {
+                    EditorGUILayout.HelpBox(
+                        "Drag a .nori file here to get started.",
+                        MessageType.Info);
+                    return;
+                }
+            }
+
+            // Load metadata for status bar and diagnostics
+            var importer = AssetImporter.GetAtPath(proxy.NoriScriptPath) as NoriImporter;
+            NoriCompileMetadata metadata = importer?.GetMetadata();
+
             // Status bar
             EditorGUILayout.Space(3);
             if (_udonBehaviourType == null)
@@ -199,9 +312,38 @@ namespace Nori
                     "Compiled program not found. Click Recompile to generate it.",
                     MessageType.Warning);
             }
+            else if (metadata != null && (metadata.ErrorCount > 0 || metadata.WarningCount > 0))
+            {
+                var parts = new System.Collections.Generic.List<string>();
+                if (metadata.ErrorCount > 0)
+                    parts.Add($"{metadata.ErrorCount} error{(metadata.ErrorCount != 1 ? "s" : "")}");
+                if (metadata.WarningCount > 0)
+                    parts.Add($"{metadata.WarningCount} warning{(metadata.WarningCount != 1 ? "s" : "")}");
+                EditorGUILayout.HelpBox(string.Join(", ", parts),
+                    metadata.ErrorCount > 0 ? MessageType.Error : MessageType.Warning);
+            }
             else
             {
                 EditorGUILayout.HelpBox("Compiled OK", MessageType.Info);
+            }
+
+            // Inline diagnostics foldout
+            if (metadata != null && metadata.Diagnostics != null && metadata.Diagnostics.Count > 0)
+            {
+                _showDiagnostics = EditorGUILayout.Foldout(_showDiagnostics, "Diagnostics");
+                if (_showDiagnostics)
+                {
+                    foreach (var diag in metadata.Diagnostics)
+                    {
+                        var msgType = diag.Severity == "error" ? MessageType.Error
+                            : diag.Severity == "warning" ? MessageType.Warning
+                            : MessageType.Info;
+                        string text = $"[{diag.Code}] line {diag.Line}: {diag.Message}";
+                        if (!string.IsNullOrEmpty(diag.Hint))
+                            text += $"\n  hint: {diag.Hint}";
+                        EditorGUILayout.HelpBox(text, msgType);
+                    }
+                }
             }
 
             // Source Script link
@@ -246,7 +388,7 @@ namespace Nori
             // Draw public variables from metadata (filtered, no __this_* vars)
             if (_udonBehaviour != null)
             {
-                DrawPublicVariables(proxy);
+                DrawPublicVariables(proxy, metadata);
             }
 
             // Compiled Nori Udon Assembly foldout
@@ -268,9 +410,17 @@ namespace Nori
 
         private void DrawPublicVariables(NoriBehaviour proxy)
         {
-            // Load metadata from the importer to know which vars are public
-            var importer = AssetImporter.GetAtPath(proxy.NoriScriptPath) as NoriImporter;
-            NoriCompileMetadata metadata = importer?.GetMetadata();
+            DrawPublicVariables(proxy, null);
+        }
+
+        private void DrawPublicVariables(NoriBehaviour proxy, NoriCompileMetadata metadata)
+        {
+            // Load metadata from the importer if not provided
+            if (metadata == null)
+            {
+                var importer = AssetImporter.GetAtPath(proxy.NoriScriptPath) as NoriImporter;
+                metadata = importer?.GetMetadata();
+            }
 
             if (metadata == null || metadata.PublicVars.Count == 0)
                 return;
@@ -280,21 +430,11 @@ namespace Nori
             if (!_showPublicVars)
                 return;
 
-            if (_publicVariablesProperty == null)
-            {
-                // Fallback: just show variable names from metadata
-                foreach (var v in metadata.PublicVars)
-                    EditorGUILayout.LabelField($"  {v.Name}: {v.TypeName}");
-                return;
-            }
-
-            var pubVars = _publicVariablesProperty.GetValue(_udonBehaviour);
-            if (pubVars == null)
-            {
-                foreach (var v in metadata.PublicVars)
-                    EditorGUILayout.LabelField($"  {v.Name}: {v.TypeName}");
-                return;
-            }
+            // Try to get the UdonBehaviour's public variable table (may be null
+            // if VRC hasn't assembled the program yet)
+            object pubVars = null;
+            if (_publicVariablesProperty != null && _udonBehaviour != null)
+                pubVars = _publicVariablesProperty.GetValue(_udonBehaviour);
 
             EditorGUI.BeginChangeCheck();
 
@@ -305,7 +445,7 @@ namespace Nori
                     continue;
 
                 object currentValue = null;
-                if (_tryGetVariableValueMethod != null)
+                if (pubVars != null && _tryGetVariableValueMethod != null)
                 {
                     var args = new object[] { varInfo.Name, null };
                     bool found = (bool)_tryGetVariableValueMethod.Invoke(pubVars, args);
@@ -313,9 +453,11 @@ namespace Nori
                         currentValue = args[1];
                 }
 
-                object newValue = DrawVariableField(varInfo.Name, varInfo.TypeName, currentValue);
+                object newValue = DrawVariableField(varInfo.Name, varInfo.TypeName, currentValue,
+                    varInfo.DocComment);
 
-                if (newValue != currentValue && _trySetVariableValueMethod != null)
+                if (newValue != currentValue &&
+                    pubVars != null && _trySetVariableValueMethod != null)
                 {
                     Undo.RecordObject(_udonBehaviour, $"Change {varInfo.Name}");
                     _trySetVariableValueMethod.Invoke(pubVars,
@@ -326,13 +468,17 @@ namespace Nori
 
             if (EditorGUI.EndChangeCheck())
             {
-                EditorUtility.SetDirty(_udonBehaviour);
+                if (_udonBehaviour != null)
+                    EditorUtility.SetDirty(_udonBehaviour);
             }
         }
 
-        private object DrawVariableField(string name, string typeName, object value)
+        private object DrawVariableField(string name, string typeName, object value,
+            string docComment = null)
         {
-            string label = ObjectNames.NicifyVariableName(name);
+            string labelText = ObjectNames.NicifyVariableName(name);
+            var label = new GUIContent(labelText,
+                !string.IsNullOrEmpty(docComment) ? docComment : null);
 
             switch (typeName)
             {
@@ -390,7 +536,7 @@ namespace Nori
                     }
                     // Generic display
                     EditorGUILayout.LabelField(label,
-                        value != null ? value.ToString() : "(null)");
+                        new GUIContent(value != null ? value.ToString() : "(null)"));
                     return value;
             }
         }

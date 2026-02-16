@@ -54,15 +54,46 @@ namespace Nori.Compiler
             public string TypeName;
             public string DefaultValue;
             public string SyncMode;
+            public string DocComment;
         }
 
-        public static NoriCompileMetadata FromAst(ModuleDecl module, DiagnosticBag diagnostics)
+        [Serializable]
+        public class DiagInfo
+        {
+            public string Severity;
+            public string Code;
+            public string Message;
+            public int Line;
+            public int Column;
+            public string Hint;
+        }
+
+        public List<DiagInfo> Diagnostics = new List<DiagInfo>();
+
+        public static NoriCompileMetadata FromAst(ModuleDecl module, DiagnosticBag diagnostics,
+            string source = null)
         {
             var meta = new NoriCompileMetadata();
             meta.ErrorCount = diagnostics.ErrorCount;
             meta.WarningCount = diagnostics.WarningCount;
 
+            // Populate diagnostics
+            foreach (var d in diagnostics.All)
+            {
+                meta.Diagnostics.Add(new DiagInfo
+                {
+                    Severity = d.Severity.ToString().ToLowerInvariant(),
+                    Code = d.Code,
+                    Message = d.Message,
+                    Line = d.Span.Start.Line,
+                    Column = d.Span.Start.Column,
+                    Hint = d.Hint,
+                });
+            }
+
             if (module == null) return meta;
+
+            string[] sourceLines = source?.Split('\n');
 
             foreach (var decl in module.Declarations)
             {
@@ -71,11 +102,17 @@ namespace Nori.Compiler
                     case VarDecl v:
                         if (v.IsPublic)
                         {
-                            meta.PublicVars.Add(new VarInfo
+                            var varInfo = new VarInfo
                             {
                                 Name = v.Name,
                                 TypeName = v.TypeName,
-                            });
+                            };
+
+                            // Extract /// doc comments above the declaration
+                            if (sourceLines != null)
+                                varInfo.DocComment = ExtractDocComment(sourceLines, v.Span.Start.Line);
+
+                            meta.PublicVars.Add(varInfo);
                         }
                         if (v.SyncMode != SyncMode.NotSynced)
                         {
@@ -102,13 +139,45 @@ namespace Nori.Compiler
             return meta;
         }
 
+        private static string ExtractDocComment(string[] lines, int declLine)
+        {
+            int idx = declLine - 2; // declLine is 1-based, go to line above
+            var commentLines = new List<string>();
+            for (int i = idx; i >= 0; i--)
+            {
+                string trimmed = lines[i].Trim();
+                if (trimmed.StartsWith("///"))
+                    commentLines.Insert(0, trimmed.Substring(3).Trim());
+                else if (trimmed == "")
+                    continue;
+                else
+                    break;
+            }
+            return commentLines.Count > 0 ? string.Join(" ", commentLines) : null;
+        }
+
         public static NoriCompileMetadata FromDiagnostics(DiagnosticBag diagnostics)
         {
-            return new NoriCompileMetadata
+            var meta = new NoriCompileMetadata
             {
                 ErrorCount = diagnostics.ErrorCount,
                 WarningCount = diagnostics.WarningCount,
             };
+
+            foreach (var d in diagnostics.All)
+            {
+                meta.Diagnostics.Add(new DiagInfo
+                {
+                    Severity = d.Severity.ToString().ToLowerInvariant(),
+                    Code = d.Code,
+                    Message = d.Message,
+                    Line = d.Span.Start.Line,
+                    Column = d.Span.Start.Column,
+                    Hint = d.Hint,
+                });
+            }
+
+            return meta;
         }
     }
 }

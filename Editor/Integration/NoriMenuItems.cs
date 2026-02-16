@@ -52,6 +52,22 @@ namespace Nori
             EditorSetupWizard.ShowWindow();
         }
 
+        [MenuItem("Assets/Create/Nori Script", false, 80)]
+        public static void CreateNoriScript()
+        {
+            const string template =
+                "on Start {\n" +
+                "    log(\"Hello from Nori!\")\n" +
+                "}\n" +
+                "\n" +
+                "on Interact {\n" +
+                "    log(\"You clicked me!\")\n" +
+                "}\n";
+
+            ProjectWindowUtil.CreateAssetWithContent(
+                "NewNoriScript.nori", template);
+        }
+
         [MenuItem("Tools/Nori/About Nori")]
         public static void ShowAbout()
         {

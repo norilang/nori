@@ -62,7 +62,7 @@ namespace Nori
             if (!perform)
                 return DragAndDropVisualMode.Copy;
 
-            // Find the companion .asset
+            // Verify the companion .asset exists (needed by the editor)
             string companionPath = NoriImporter.GetCompanionAssetPath(noriPath);
             EnsureCache();
 
@@ -97,18 +97,16 @@ namespace Nori
                     targetGo.transform.SetParent(parentForDraggedObjects);
             }
 
-            // Add UdonBehaviour component via reflection
-            var udonBehaviour = Undo.AddComponent(targetGo, _udonBehaviourType);
-
-            // Set programSource field via SerializedObject
-            var so = new SerializedObject(udonBehaviour);
-            var programSourceProp = so.FindProperty("programSource");
-            if (programSourceProp != null)
+            // Add NoriScript component and wire up the .nori source
+            var noriScript = Undo.AddComponent<NoriScript>(targetGo);
+            var textAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(noriPath);
+            if (textAsset != null)
             {
-                programSourceProp.objectReferenceValue = companionAsset;
-                so.ApplyModifiedProperties();
+                noriScript._noriSource = textAsset;
+                noriScript.SetScriptPath(noriPath);
             }
 
+            // Let NoriBehaviourEditor.OnEnable handle UdonBehaviour wiring
             Selection.activeGameObject = targetGo;
             return DragAndDropVisualMode.Copy;
         }

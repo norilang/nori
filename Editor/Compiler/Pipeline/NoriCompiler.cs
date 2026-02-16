@@ -19,7 +19,7 @@ namespace Nori.Compiler
             // Phase 2: Parse
             var parser = new Parser(tokens, diagnostics);
             var ast = parser.Parse();
-            var metadata = NoriCompileMetadata.FromAst(ast, diagnostics);
+            var metadata = NoriCompileMetadata.FromAst(ast, diagnostics, source);
 
             if (diagnostics.HasErrors)
                 return CompileResult.Failed(diagnostics, ast, metadata);
@@ -27,7 +27,7 @@ namespace Nori.Compiler
             // Phase 3: Semantic Analysis
             var analyzer = new SemanticAnalyzer(ast, catalog, diagnostics);
             analyzer.Analyze();
-            metadata = NoriCompileMetadata.FromAst(ast, diagnostics);
+            metadata = NoriCompileMetadata.FromAst(ast, diagnostics, source);
 
             if (diagnostics.HasErrors)
                 return CompileResult.Failed(diagnostics, ast, metadata);
@@ -40,7 +40,7 @@ namespace Nori.Compiler
             var emitter = new UdonEmitter(ir);
             var uasm = emitter.Emit();
 
-            metadata = NoriCompileMetadata.FromAst(ast, diagnostics);
+            metadata = NoriCompileMetadata.FromAst(ast, diagnostics, source);
 
             return CompileResult.Succeeded(uasm, ast, diagnostics, metadata);
         }
