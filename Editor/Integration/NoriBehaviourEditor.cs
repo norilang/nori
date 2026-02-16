@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System;
+using System.Globalization;
 using UnityEditor;
 using UnityEngine;
 using Nori.Compiler;
@@ -20,6 +21,7 @@ namespace Nori
         // Reflection caches
         private static Type _udonBehaviourType;
         private static Type _programSourceType;
+        private static Type _vrcPickupType;
         private static bool _cacheInitialized;
 
         private bool _showUasm;
@@ -47,6 +49,8 @@ namespace Nori
             _udonBehaviourType = Type.GetType("VRC.Udon.UdonBehaviour, VRC.Udon");
             _programSourceType = Type.GetType(
                 "VRC.Udon.AbstractUdonProgramSource, VRC.Udon");
+            _vrcPickupType = Type.GetType("VRC.SDK3.Components.VRCPickup, VRCSDK3")
+                ?? Type.GetType("VRCSDK2.VRC_Pickup, VRC.SDKBase");
         }
 
         private static void EnsureVariableReflection()
@@ -346,6 +350,9 @@ namespace Nori
                 }
             }
 
+            // Missing component warnings
+            DrawComponentWarnings(proxy, metadata);
+
             // Source Script link
             EditorGUILayout.Space(3);
             EditorGUI.BeginDisabledGroup(true);
@@ -385,11 +392,8 @@ namespace Nori
                 }
             }
 
-            // Draw public variables from metadata (filtered, no __this_* vars)
-            if (_udonBehaviour != null)
-            {
-                DrawPublicVariables(proxy, metadata);
-            }
+            // Draw public variables from metadata
+            DrawPublicVariables(proxy, metadata);
 
             // Compiled Nori Udon Assembly foldout
             EditorGUILayout.Space(10);
@@ -405,6 +409,72 @@ namespace Nori
             if (_showDisassembly)
             {
                 DrawDisassembly(proxy);
+            }
+        }
+
+        private void DrawComponentWarnings(NoriBehaviour proxy, NoriCompileMetadata metadata)
+        {
+            if (metadata == null || metadata.Events == null || metadata.Events.Count == 0)
+                return;
+
+            var events = metadata.Events;
+
+            // Interact → needs any Collider
+            if (events.Contains("Interact"))
+            {
+                if (proxy.GetComponent<Collider>() == null)
+                {
+                    EditorGUILayout.HelpBox(
+                        "This script uses Interact but this GameObject has no Collider.",
+                        MessageType.Warning);
+                }
+            }
+
+            // Pickup events → needs VRC Pickup + Rigidbody
+            bool hasPickupEvent = events.Contains("Pickup") || events.Contains("Drop")
+                || events.Contains("PickupUseDown") || events.Contains("PickupUseUp");
+            if (hasPickupEvent)
+            {
+                if (_vrcPickupType != null && proxy.GetComponent(_vrcPickupType) == null)
+                {
+                    EditorGUILayout.HelpBox(
+                        "This script uses Pickup events but this GameObject has no VRC Pickup component.",
+                        MessageType.Warning);
+                }
+
+                if (proxy.GetComponent<Rigidbody>() == null)
+                {
+                    EditorGUILayout.HelpBox(
+                        "This script uses Pickup events but this GameObject has no Rigidbody.",
+                        MessageType.Warning);
+                }
+            }
+
+            // Trigger events → needs a Collider with isTrigger
+            bool hasTriggerEvent = events.Contains("OnPlayerTriggerEnter")
+                || events.Contains("OnPlayerTriggerExit")
+                || events.Contains("TriggerEnter") || events.Contains("TriggerExit");
+            if (hasTriggerEvent)
+            {
+                var colliders = proxy.GetComponents<Collider>();
+                bool anyTrigger = false;
+                foreach (var col in colliders)
+                {
+                    if (col.isTrigger)
+                    {
+                        anyTrigger = true;
+                        break;
+                    }
+                }
+
+                if (!anyTrigger)
+                {
+                    EditorGUILayout.HelpBox(
+                        colliders.Length == 0
+                            ? "This script uses trigger events but this GameObject has no Collider."
+                            : "This script uses trigger events but no Collider on this GameObject has Is Trigger enabled.",
+                        MessageType.Warning);
+                }
             }
         }
 
@@ -436,49 +506,362 @@ namespace Nori
             if (_publicVariablesProperty != null && _udonBehaviour != null)
                 pubVars = _publicVariablesProperty.GetValue(_udonBehaviour);
 
-            EditorGUI.BeginChangeCheck();
-
             foreach (var varInfo in metadata.PublicVars)
             {
                 // Skip internal variables
                 if (varInfo.Name.StartsWith("__"))
                     continue;
 
-                object currentValue = null;
-                if (pubVars != null && _tryGetVariableValueMethod != null)
+                // Read current value: override storage first, then UdonBehaviour table
+                object currentValue;
+                if (!TryGetOverrideValue(proxy, varInfo.Name, varInfo.TypeName,
+                    varInfo.IsArray, out currentValue))
                 {
-                    var args = new object[] { varInfo.Name, null };
-                    bool found = (bool)_tryGetVariableValueMethod.Invoke(pubVars, args);
-                    if (found)
-                        currentValue = args[1];
+                    currentValue = null;
+                    if (pubVars != null && _tryGetVariableValueMethod != null)
+                    {
+                        var args = new object[] { varInfo.Name, null };
+                        bool found = (bool)_tryGetVariableValueMethod.Invoke(pubVars, args);
+                        if (found)
+                            currentValue = args[1];
+                    }
                 }
 
                 object newValue = DrawVariableField(varInfo.Name, varInfo.TypeName, currentValue,
-                    varInfo.DocComment);
+                    varInfo.DocComment, varInfo.IsArray);
 
-                if (newValue != currentValue &&
-                    pubVars != null && _trySetVariableValueMethod != null)
+                if (!System.Object.Equals(newValue, currentValue))
                 {
-                    Undo.RecordObject(_udonBehaviour, $"Change {varInfo.Name}");
-                    _trySetVariableValueMethod.Invoke(pubVars,
-                        new[] { varInfo.Name, newValue });
-                    EditorUtility.SetDirty(_udonBehaviour);
+                    // Always persist to override storage on the proxy component
+                    Undo.RecordObject(proxy, $"Change {varInfo.Name}");
+                    SetOverrideValue(proxy, varInfo.Name, varInfo.TypeName,
+                        varInfo.IsArray, newValue);
+                    EditorUtility.SetDirty(proxy);
+
+                    // Also push to UdonBehaviour if its variable table is available
+                    if (pubVars != null && _trySetVariableValueMethod != null)
+                    {
+                        Undo.RecordObject(_udonBehaviour, $"Change {varInfo.Name}");
+                        _trySetVariableValueMethod.Invoke(pubVars,
+                            new[] { varInfo.Name, newValue });
+                        EditorUtility.SetDirty(_udonBehaviour);
+                    }
                 }
             }
 
-            if (EditorGUI.EndChangeCheck())
+            // Push all overrides to UdonBehaviour when its table becomes available
+            SyncOverridesToUdon(proxy, pubVars);
+        }
+
+        private bool TryGetOverrideValue(NoriBehaviour proxy, string name, string typeName,
+            bool isArray, out object value)
+        {
+            foreach (var ov in proxy._varOverrides)
             {
-                if (_udonBehaviour != null)
-                    EditorUtility.SetDirty(_udonBehaviour);
+                if (ov.name == name)
+                {
+                    if (isArray)
+                    {
+                        if (IsObjectReferenceType(typeName))
+                            value = ov.objectReferences;
+                        else
+                            value = DeserializeValueArray(typeName, ov.serializedValue);
+                    }
+                    else if (IsObjectReferenceType(typeName))
+                        value = ov.objectReference;
+                    else
+                        value = DeserializeValue(typeName, ov.serializedValue);
+                    return true;
+                }
+            }
+            value = null;
+            return false;
+        }
+
+        private void SetOverrideValue(NoriBehaviour proxy, string name, string typeName,
+            bool isArray, object value)
+        {
+            NoriBehaviour.VarOverride existing = null;
+            foreach (var ov in proxy._varOverrides)
+            {
+                if (ov.name == name)
+                {
+                    existing = ov;
+                    break;
+                }
+            }
+
+            if (existing == null)
+            {
+                existing = new NoriBehaviour.VarOverride
+                    { name = name, type = typeName, isArray = isArray };
+                proxy._varOverrides.Add(existing);
+            }
+
+            if (isArray)
+            {
+                if (IsObjectReferenceType(typeName))
+                {
+                    existing.objectReferences.Clear();
+                    if (value is System.Collections.Generic.List<UnityEngine.Object> list)
+                    {
+                        existing.objectReferences.AddRange(list);
+                    }
+                }
+                else
+                {
+                    existing.serializedValue = SerializeValueArray(typeName, value);
+                }
+            }
+            else if (IsObjectReferenceType(typeName))
+                existing.objectReference = value as UnityEngine.Object;
+            else
+                existing.serializedValue = SerializeValue(typeName, value);
+        }
+
+        private void SyncOverridesToUdon(NoriBehaviour proxy, object pubVars)
+        {
+            if (pubVars == null || _trySetVariableValueMethod == null)
+                return;
+            if (proxy._varOverrides.Count == 0)
+                return;
+
+            foreach (var ov in proxy._varOverrides)
+            {
+                object value;
+                if (ov.isArray)
+                {
+                    if (IsObjectReferenceType(ov.type))
+                        value = ConvertObjectListToArray(ov.type, ov.objectReferences);
+                    else
+                        value = ConvertValueListToArray(ov.type, ov.serializedValue);
+                }
+                else if (IsObjectReferenceType(ov.type))
+                    value = ov.objectReference;
+                else
+                    value = DeserializeValue(ov.type, ov.serializedValue);
+
+                _trySetVariableValueMethod.Invoke(pubVars, new[] { ov.name, value });
+            }
+        }
+
+        private static object ConvertObjectListToArray(string elemType,
+            System.Collections.Generic.List<UnityEngine.Object> list)
+        {
+            if (list == null) return null;
+            switch (elemType)
+            {
+                case "GameObject":
+                    var goArr = new GameObject[list.Count];
+                    for (int i = 0; i < list.Count; i++)
+                        goArr[i] = list[i] as GameObject;
+                    return goArr;
+                case "Transform":
+                    var trArr = new Transform[list.Count];
+                    for (int i = 0; i < list.Count; i++)
+                        trArr[i] = list[i] as Transform;
+                    return trArr;
+                default:
+                    var objArr = new UnityEngine.Object[list.Count];
+                    for (int i = 0; i < list.Count; i++)
+                        objArr[i] = list[i];
+                    return objArr;
+            }
+        }
+
+        private static object ConvertValueListToArray(string elemType, string serialized)
+        {
+            if (string.IsNullOrEmpty(serialized)) return null;
+            var parts = serialized.Split(new[] { '\n' }, StringSplitOptions.None);
+            var ic = CultureInfo.InvariantCulture;
+            switch (elemType)
+            {
+                case "string": case "String":
+                    return parts;
+                case "int": case "Int32":
+                    var intArr = new int[parts.Length];
+                    for (int i = 0; i < parts.Length; i++)
+                        int.TryParse(parts[i], NumberStyles.Any, ic, out intArr[i]);
+                    return intArr;
+                case "float": case "Single":
+                    var fArr = new float[parts.Length];
+                    for (int i = 0; i < parts.Length; i++)
+                        float.TryParse(parts[i], NumberStyles.Any, ic, out fArr[i]);
+                    return fArr;
+                case "bool": case "Boolean":
+                    var bArr = new bool[parts.Length];
+                    for (int i = 0; i < parts.Length; i++)
+                        bool.TryParse(parts[i], out bArr[i]);
+                    return bArr;
+                default:
+                    return parts;
+            }
+        }
+
+        private static bool IsObjectReferenceType(string typeName)
+        {
+            switch (typeName)
+            {
+                case "int": case "Int32":
+                case "float": case "Single":
+                case "double": case "Double":
+                case "bool": case "Boolean":
+                case "string": case "String":
+                case "Vector2":
+                case "Vector3":
+                case "Quaternion":
+                case "Color":
+                    return false;
+                default:
+                    return true;
+            }
+        }
+
+        private static string SerializeValue(string typeName, object value)
+        {
+            if (value == null) return null;
+            var ic = CultureInfo.InvariantCulture;
+            switch (typeName)
+            {
+                case "int": case "Int32":
+                    return ((int)value).ToString(ic);
+                case "float": case "Single":
+                    return ((float)value).ToString("R", ic);
+                case "double": case "Double":
+                    return ((double)value).ToString("R", ic);
+                case "bool": case "Boolean":
+                    return ((bool)value).ToString();
+                case "string": case "String":
+                    return (string)value;
+                case "Vector2":
+                    var v2 = (Vector2)value;
+                    return string.Format(ic, "{0:R},{1:R}", v2.x, v2.y);
+                case "Vector3":
+                    var v3 = (Vector3)value;
+                    return string.Format(ic, "{0:R},{1:R},{2:R}", v3.x, v3.y, v3.z);
+                case "Quaternion":
+                    var q = (Quaternion)value;
+                    return string.Format(ic, "{0:R},{1:R},{2:R},{3:R}", q.x, q.y, q.z, q.w);
+                case "Color":
+                    var c = (Color)value;
+                    return string.Format(ic, "{0:R},{1:R},{2:R},{3:R}", c.r, c.g, c.b, c.a);
+                default:
+                    return value.ToString();
+            }
+        }
+
+        private static object DeserializeValue(string typeName, string serialized)
+        {
+            if (string.IsNullOrEmpty(serialized)) return null;
+            var ic = CultureInfo.InvariantCulture;
+            try
+            {
+                switch (typeName)
+                {
+                    case "int": case "Int32":
+                        return int.Parse(serialized, ic);
+                    case "float": case "Single":
+                        return float.Parse(serialized, ic);
+                    case "double": case "Double":
+                        return double.Parse(serialized, ic);
+                    case "bool": case "Boolean":
+                        return bool.Parse(serialized);
+                    case "string": case "String":
+                        return serialized;
+                    case "Vector2":
+                        var v2 = serialized.Split(',');
+                        return new Vector2(
+                            float.Parse(v2[0], ic), float.Parse(v2[1], ic));
+                    case "Vector3":
+                        var v3 = serialized.Split(',');
+                        return new Vector3(
+                            float.Parse(v3[0], ic), float.Parse(v3[1], ic),
+                            float.Parse(v3[2], ic));
+                    case "Quaternion":
+                        var qp = serialized.Split(',');
+                        return new Quaternion(
+                            float.Parse(qp[0], ic), float.Parse(qp[1], ic),
+                            float.Parse(qp[2], ic), float.Parse(qp[3], ic));
+                    case "Color":
+                        var cp = serialized.Split(',');
+                        return new Color(
+                            float.Parse(cp[0], ic), float.Parse(cp[1], ic),
+                            float.Parse(cp[2], ic), float.Parse(cp[3], ic));
+                    default:
+                        return null;
+                }
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static string SerializeValueArray(string elemType, object value)
+        {
+            if (value == null) return null;
+            var ic = CultureInfo.InvariantCulture;
+            if (value is string[] sArr)
+                return string.Join("\n", sArr);
+            if (value is int[] iArr)
+            {
+                var parts = new string[iArr.Length];
+                for (int i = 0; i < iArr.Length; i++) parts[i] = iArr[i].ToString(ic);
+                return string.Join("\n", parts);
+            }
+            if (value is float[] fArr)
+            {
+                var parts = new string[fArr.Length];
+                for (int i = 0; i < fArr.Length; i++) parts[i] = fArr[i].ToString("R", ic);
+                return string.Join("\n", parts);
+            }
+            if (value is bool[] bArr)
+            {
+                var parts = new string[bArr.Length];
+                for (int i = 0; i < bArr.Length; i++) parts[i] = bArr[i].ToString();
+                return string.Join("\n", parts);
+            }
+            return null;
+        }
+
+        private static object DeserializeValueArray(string elemType, string serialized)
+        {
+            if (string.IsNullOrEmpty(serialized)) return null;
+            var parts = serialized.Split(new[] { '\n' }, StringSplitOptions.None);
+            var ic = CultureInfo.InvariantCulture;
+            switch (elemType)
+            {
+                case "string": case "String":
+                    return parts;
+                case "int": case "Int32":
+                    var iArr = new int[parts.Length];
+                    for (int i = 0; i < parts.Length; i++)
+                        int.TryParse(parts[i], NumberStyles.Any, ic, out iArr[i]);
+                    return iArr;
+                case "float": case "Single":
+                    var fArr = new float[parts.Length];
+                    for (int i = 0; i < parts.Length; i++)
+                        float.TryParse(parts[i], NumberStyles.Any, ic, out fArr[i]);
+                    return fArr;
+                case "bool": case "Boolean":
+                    var bArr = new bool[parts.Length];
+                    for (int i = 0; i < parts.Length; i++)
+                        bool.TryParse(parts[i], out bArr[i]);
+                    return bArr;
+                default:
+                    return null;
             }
         }
 
         private object DrawVariableField(string name, string typeName, object value,
-            string docComment = null)
+            string docComment = null, bool isArray = false)
         {
             string labelText = ObjectNames.NicifyVariableName(name);
             var label = new GUIContent(labelText,
                 !string.IsNullOrEmpty(docComment) ? docComment : null);
+
+            if (isArray)
+                return DrawArrayField(label, typeName, value);
 
             switch (typeName)
             {
@@ -538,6 +921,150 @@ namespace Nori
                     EditorGUILayout.LabelField(label,
                         new GUIContent(value != null ? value.ToString() : "(null)"));
                     return value;
+            }
+        }
+
+        private object DrawArrayField(GUIContent label, string elemType, object value)
+        {
+            bool isObjRef = IsObjectReferenceType(elemType);
+
+            if (isObjRef)
+            {
+                var list = value as System.Collections.Generic.List<UnityEngine.Object>
+                    ?? new System.Collections.Generic.List<UnityEngine.Object>();
+
+                EditorGUILayout.BeginVertical();
+                EditorGUILayout.LabelField(label, EditorStyles.boldLabel);
+                EditorGUI.indentLevel++;
+
+                int newSize = EditorGUILayout.IntField("Size", list.Count);
+                newSize = Mathf.Max(0, newSize);
+                while (list.Count < newSize) list.Add(null);
+                while (list.Count > newSize) list.RemoveAt(list.Count - 1);
+
+                Type fieldType = ResolveUnityType(elemType);
+                bool changed = false;
+                for (int i = 0; i < list.Count; i++)
+                {
+                    var elem = EditorGUILayout.ObjectField(
+                        $"Element {i}", list[i], fieldType, true);
+                    if (elem != list[i]) { list[i] = elem; changed = true; }
+                }
+
+                EditorGUI.indentLevel--;
+                EditorGUILayout.EndVertical();
+
+                // Return a new list instance if anything changed so Equals detects it
+                return changed || newSize != (value as System.Collections.Generic.List<UnityEngine.Object>)?.Count
+                    ? new System.Collections.Generic.List<UnityEngine.Object>(list)
+                    : (object)list;
+            }
+            else
+            {
+                // Value-type arrays: string[], int[], float[], bool[]
+                return DrawValueArrayField(label, elemType, value);
+            }
+        }
+
+        private object DrawValueArrayField(GUIContent label, string elemType, object value)
+        {
+            EditorGUILayout.BeginVertical();
+            EditorGUILayout.LabelField(label, EditorStyles.boldLabel);
+            EditorGUI.indentLevel++;
+
+            switch (elemType)
+            {
+                case "string": case "String":
+                {
+                    var orig = value as string[] ?? new string[0];
+                    var arr = (string[])orig.Clone();
+                    int newSize = EditorGUILayout.IntField("Size", arr.Length);
+                    newSize = Mathf.Max(0, newSize);
+                    if (newSize != arr.Length) Array.Resize(ref arr, newSize);
+                    bool changed = arr.Length != orig.Length;
+                    for (int i = 0; i < arr.Length; i++)
+                    {
+                        string prev = arr[i];
+                        arr[i] = EditorGUILayout.TextField($"Element {i}", arr[i] ?? "");
+                        if (arr[i] != prev) changed = true;
+                    }
+                    EditorGUI.indentLevel--;
+                    EditorGUILayout.EndVertical();
+                    return changed ? arr : value;
+                }
+                case "int": case "Int32":
+                {
+                    var orig = value as int[] ?? new int[0];
+                    var arr = (int[])orig.Clone();
+                    int newSize = EditorGUILayout.IntField("Size", arr.Length);
+                    newSize = Mathf.Max(0, newSize);
+                    if (newSize != arr.Length) Array.Resize(ref arr, newSize);
+                    bool changed = arr.Length != orig.Length;
+                    for (int i = 0; i < arr.Length; i++)
+                    {
+                        int prev = arr[i];
+                        arr[i] = EditorGUILayout.IntField($"Element {i}", arr[i]);
+                        if (arr[i] != prev) changed = true;
+                    }
+                    EditorGUI.indentLevel--;
+                    EditorGUILayout.EndVertical();
+                    return changed ? arr : value;
+                }
+                case "float": case "Single":
+                {
+                    var orig = value as float[] ?? new float[0];
+                    var arr = (float[])orig.Clone();
+                    int newSize = EditorGUILayout.IntField("Size", arr.Length);
+                    newSize = Mathf.Max(0, newSize);
+                    if (newSize != arr.Length) Array.Resize(ref arr, newSize);
+                    bool changed = arr.Length != orig.Length;
+                    for (int i = 0; i < arr.Length; i++)
+                    {
+                        float prev = arr[i];
+                        arr[i] = EditorGUILayout.FloatField($"Element {i}", arr[i]);
+                        if (arr[i] != prev) changed = true;
+                    }
+                    EditorGUI.indentLevel--;
+                    EditorGUILayout.EndVertical();
+                    return changed ? arr : value;
+                }
+                case "bool": case "Boolean":
+                {
+                    var orig = value as bool[] ?? new bool[0];
+                    var arr = (bool[])orig.Clone();
+                    int newSize = EditorGUILayout.IntField("Size", arr.Length);
+                    newSize = Mathf.Max(0, newSize);
+                    if (newSize != arr.Length) Array.Resize(ref arr, newSize);
+                    bool changed = arr.Length != orig.Length;
+                    for (int i = 0; i < arr.Length; i++)
+                    {
+                        bool prev = arr[i];
+                        arr[i] = EditorGUILayout.Toggle($"Element {i}", arr[i]);
+                        if (arr[i] != prev) changed = true;
+                    }
+                    EditorGUI.indentLevel--;
+                    EditorGUILayout.EndVertical();
+                    return changed ? arr : value;
+                }
+                default:
+                    EditorGUILayout.LabelField("(unsupported array element type)");
+                    EditorGUI.indentLevel--;
+                    EditorGUILayout.EndVertical();
+                    return value;
+            }
+        }
+
+        private static Type ResolveUnityType(string typeName)
+        {
+            switch (typeName)
+            {
+                case "GameObject": return typeof(GameObject);
+                case "Transform": return typeof(Transform);
+                case "Material": return typeof(Material);
+                case "AudioClip": return typeof(AudioClip);
+                case "Sprite": return typeof(Sprite);
+                case "Texture2D": return typeof(Texture2D);
+                default: return typeof(UnityEngine.Object);
             }
         }
 

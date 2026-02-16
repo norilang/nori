@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Nori
@@ -26,5 +28,24 @@ namespace Nori
         /// </summary>
         [HideInInspector]
         public string companionAssetPath;
+
+        /// <summary>
+        /// Stores public variable overrides set in the inspector.
+        /// Values persist here even when the UdonBehaviour's variable table
+        /// is not yet available (before program assembly).
+        /// </summary>
+        [Serializable]
+        internal class VarOverride
+        {
+            public string name;
+            public string type;
+            public bool isArray;
+            public string serializedValue;
+            public UnityEngine.Object objectReference;
+            public List<UnityEngine.Object> objectReferences = new List<UnityEngine.Object>();
+        }
+
+        [SerializeField, HideInInspector]
+        internal List<VarOverride> _varOverrides = new List<VarOverride>();
     }
 }

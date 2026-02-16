@@ -52,6 +52,7 @@ namespace Nori.Compiler
         {
             public string Name;
             public string TypeName;
+            public bool IsArray;
             public string DefaultValue;
             public string SyncMode;
             public string DocComment;
@@ -106,6 +107,7 @@ namespace Nori.Compiler
                             {
                                 Name = v.Name,
                                 TypeName = v.TypeName,
+                                IsArray = v.IsArray,
                             };
 
                             // Extract /// doc comments above the declaration
@@ -120,6 +122,7 @@ namespace Nori.Compiler
                             {
                                 Name = v.Name,
                                 TypeName = v.TypeName,
+                                IsArray = v.IsArray,
                                 SyncMode = v.SyncMode.ToString().ToLowerInvariant(),
                             });
                         }
