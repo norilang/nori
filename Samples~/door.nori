@@ -1,10 +1,24 @@
+/*
+ * Animated Door — Toggle a door open and closed
+ *
+ * Attach to a door GameObject. Set the 'speed' field in the
+ * Unity inspector to control how fast it opens.
+ *
+ * Features shown: pub let, let, bool/float types, if/else,
+ *                 on Update, Time.deltaTime, arithmetic,
+ *                 negation (!), comparison (!=, <, >)
+ */
+
+// 'pub let' exposes the variable in the Unity inspector
 pub let speed: float = 90.0
+
+// 'let' declares a private variable (not visible in inspector)
 let is_open: bool = false
 let current_angle: float = 0.0
 let target_angle: float = 0.0
 
 on Interact {
-    is_open = !is_open
+    is_open = !is_open       // '!' negates a bool
     if is_open {
         target_angle = 90.0
     } else {
@@ -12,8 +26,10 @@ on Interact {
     }
 }
 
+// 'on Update' runs every frame — use for smooth animation
 on Update {
     if current_angle != target_angle {
+        // Time.deltaTime = seconds since last frame
         let step: float = speed * Time.deltaTime
         if current_angle < target_angle {
             current_angle = current_angle + step

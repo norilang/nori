@@ -1,0 +1,44 @@
+/*
+ * Spinner — Continuously rotating display platform
+ *
+ * Attach to a GameObject you want to spin (e.g. a pedestal).
+ * The rotation speed is configurable in the inspector and
+ * clamped to a safe range.
+ *
+ * Features shown: on Enable, on Disable, transform.Rotate(),
+ *                 Vector3.up, compound assignment (+=),
+ *                 Mathf.Clamp(), warn()
+ */
+
+pub let speed: float = 45.0         // degrees per second
+pub let max_speed: float = 360.0
+
+let is_active: bool = false
+let total_rotation: float = 0.0
+
+// 'on Enable' fires when the GameObject becomes active
+on Enable {
+    is_active = true
+    log("Spinner enabled")
+}
+
+// 'on Disable' fires when the GameObject is deactivated
+on Disable {
+    is_active = false
+    warn("Spinner disabled")         // warn() logs a warning
+}
+
+on Update {
+    if is_active {
+        // Mathf.Clamp(value, min, max) keeps speed in bounds
+        let clamped: float = Mathf.Clamp(speed, 0.0, max_speed)
+
+        let angle: float = clamped * Time.deltaTime
+
+        // transform.Rotate(axis, angle) rotates this object
+        // Vector3.up = (0, 1, 0)
+        transform.Rotate(Vector3.up, angle)
+
+        total_rotation += angle      // '+=' compound assignment
+    }
+}

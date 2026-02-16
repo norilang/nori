@@ -1,0 +1,69 @@
+/*
+ * Light Cycler — Toggle an array of lights on and off
+ *
+ * Drag GameObjects into the 'lights' array in the inspector.
+ * Clicking cycles through them: each click activates the next
+ * light and deactivates the rest.
+ *
+ * Features shown: array type (GameObject[]), null (initializer),
+ *                 .Length, array indexing (arr[i]), for i in 0..n,
+ *                 for item in array, continue, break,
+ *                 gameObject.SetActive(), gameObject.activeSelf
+ */
+
+// Array types use brackets: GameObject[]
+pub let lights: GameObject[] = null  // assigned in inspector
+
+let current: int = 0
+let is_ready: bool = false           // set after init succeeds
+
+on Start {
+    // 'for i in 0..n' counts from 0 up to (not including) n
+    for i in 0..lights.Length {
+        // arr[i] accesses an array element by index
+        lights[i].SetActive(false)
+    }
+
+    is_ready = true
+    log("Light cycler ready — {lights.Length} lights")
+}
+
+fn activate_light(index: int) {
+    // Turn all lights off, then turn on the selected one
+    for i in 0..lights.Length {
+        if i == index {
+            continue                 // skip to next iteration
+        }
+        lights[i].SetActive(false)
+    }
+    lights[index].SetActive(true)
+}
+
+on Interact {
+    if !is_ready {
+        return
+    }
+
+    activate_light(current)
+    log("Light {current} active")
+
+    current += 1
+    if current >= lights.Length {
+        current = 0                  // wrap around
+    }
+}
+
+// Alternative: iterate directly over array elements
+fn count_active() -> int {
+    let count: int = 0
+
+    // 'for item in array' iterates over each element
+    for light in lights {
+        if light.activeSelf {
+            count += 1
+            break                    // 'break' exits the loop early
+        }
+    }
+
+    return count
+}

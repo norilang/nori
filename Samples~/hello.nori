@@ -1,7 +1,18 @@
+/*
+ * Hello World — Your first Nori script
+ *
+ * This is the simplest possible Nori program. Attach it to any
+ * GameObject to see messages in the VRChat log console.
+ *
+ * Features shown: on Start, on Interact, log(), comments
+ */
+
+// 'on Start' runs once when the world loads
 on Start {
     log("Hello from Nori!")
 }
 
+// 'on Interact' runs when a player clicks this object
 on Interact {
     log("You clicked me!")
 }

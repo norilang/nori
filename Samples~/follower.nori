@@ -1,0 +1,76 @@
+/*
+ * Follower — Object that smoothly follows a target
+ *
+ * Assign a 'target' GameObject in the inspector. This object
+ * will glide toward it each frame using linear interpolation.
+ *
+ * Features shown: Vector3.Distance(), Vector3.Lerp(),
+ *                 Vector3.zero, Vector3.forward,
+ *                 Quaternion.identity, Mathf.Abs(),
+ *                 Mathf.Min(), Mathf.Max(),
+ *                 transform.position (get/set),
+ *                 transform.rotation (set),
+ *                 vector subtraction (-), vector-scalar multiply (*)
+ */
+
+pub let target: GameObject = null
+pub let follow_speed: float = 3.0
+pub let stop_distance: float = 0.5   // stop when this close
+pub let max_distance: float = 20.0   // give up when too far
+
+let last_distance: float = 0.0
+let is_ready: bool = false           // tracks whether target is set
+
+on Start {
+    // transform.position gets this object's world position
+    last_distance = Vector3.Distance(
+        transform.position,
+        target.transform.position
+    )
+    is_ready = true
+    log("Following target — initial distance: {last_distance}")
+}
+
+on Update {
+    if !is_ready {
+        return
+    }
+
+    let my_pos: Vector3 = transform.position
+    let target_pos: Vector3 = target.transform.position
+
+    // Vector3.Distance returns a float
+    let dist: float = Vector3.Distance(my_pos, target_pos)
+
+    // Mathf.Abs() returns absolute value
+    let delta: float = Mathf.Abs(dist - last_distance)
+    last_distance = dist
+
+    // Too far away — reset to a nearer position
+    if dist > max_distance {
+        // Vector subtraction gives a direction vector
+        let direction: Vector3 = target_pos - my_pos
+
+        // Vector * float scales the vector
+        let offset: Vector3 = Vector3.forward * max_distance
+
+        transform.position = target_pos - offset
+        return
+    }
+
+    // Close enough — stop moving
+    if dist < stop_distance {
+        return
+    }
+
+    // Mathf.Min/Max clamp the interpolation factor
+    let t: float = Mathf.Min(follow_speed * Time.deltaTime, 1.0)
+    t = Mathf.Max(t, 0.0)
+
+    // Vector3.Lerp blends between two positions
+    let new_pos: Vector3 = Vector3.Lerp(my_pos, target_pos, t)
+    transform.position = new_pos
+
+    // Reset rotation to default
+    transform.rotation = Quaternion.identity
+}

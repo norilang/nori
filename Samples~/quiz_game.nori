@@ -1,0 +1,144 @@
+/*
+ * Quiz Game — Comprehensive trivia game (capstone sample)
+ *
+ * Attach to a quiz board object. Demonstrates advanced features
+ * including arrays, string operations, logic operators, modulo,
+ * and functions with multiple parameters.
+ *
+ * Features shown: string[] with array literals (["a", "b"]),
+ *                 && / || logical operators, else if, % modulo,
+ *                 /= compound assignment, Time.time,
+ *                 fn with multiple params + return,
+ *                 int-to-float implicit widening
+ */
+
+pub let time_limit: float = 30.0
+
+// Array literals use square brackets
+let questions: string[] = [
+    "What language does Nori compile to?",
+    "How many opcodes does Udon have?",
+    "What keyword makes a variable public?"
+]
+let answers: string[] = [
+    "Udon Assembly",
+    "9",
+    "pub"
+]
+
+let current_question: int = 0
+let score: int = 0
+let total_asked: int = 0
+let game_active: bool = false
+let start_time: float = 0.0
+
+on Start {
+    log("Quiz Game — click to start!")
+}
+
+fn start_round() {
+    game_active = true
+    // Time.time is seconds since world load
+    start_time = Time.time
+    show_question()
+}
+
+fn show_question() {
+    if current_question >= questions.Length {
+        end_game()
+        return
+    }
+    log("Question {current_question + 1}: {questions[current_question]}")
+}
+
+fn check_answer(guess: int) -> bool {
+    // '&&' and '||' — logical AND / OR (not short-circuited)
+    if guess >= 0 && guess < answers.Length {
+        total_asked += 1
+        return true
+    }
+    return false
+}
+
+fn calculate_score(correct: int, total: int) -> float {
+    if total == 0 {
+        return 0.0
+    }
+
+    // int-to-float implicit widening: correct (int) -> float
+    let pct: float = correct * 100 / total
+
+    // '/=' compound division
+    pct /= 1.0   // keeps it as float
+
+    return pct
+}
+
+fn end_game() {
+    game_active = false
+    let pct: float = calculate_score(score, total_asked)
+    log("Game over! Score: {score}/{total_asked} ({pct}%)")
+
+    // '%' modulo operator
+    let bonus: int = score % 3
+    if bonus == 0 {
+        log("Perfect streak bonus!")
+    }
+}
+
+fn advance_question() {
+    current_question += 1
+
+    // 'else if' chains — no 'elif' keyword needed
+    if current_question >= questions.Length {
+        end_game()
+    } else if current_question == questions.Length - 1 {
+        log("Last question!")
+        show_question()
+    } else {
+        show_question()
+    }
+}
+
+on Interact {
+    if !game_active {
+        // Reset state
+        current_question = 0
+        score = 0
+        total_asked = 0
+        start_round()
+        return
+    }
+
+    // Check time limit
+    let elapsed: float = Time.time - start_time
+    if elapsed > time_limit {
+        log("Time's up!")
+        end_game()
+        return
+    }
+
+    // Simulate answering correctly
+    let valid: bool = check_answer(current_question)
+    if valid {
+        score += 1
+        log("Correct! ({elapsed} seconds elapsed)")
+    }
+
+    advance_question()
+}
+
+on Update {
+    // Warn when running low on time
+    if game_active {
+        let remaining: float = time_limit - (Time.time - start_time)
+        if remaining > 0.0 && remaining < 5.0 {
+            // Only warn occasionally (simple throttle via modulo on frame count)
+            warn("Hurry! {remaining} seconds left!")
+        }
+        if remaining <= 0.0 {
+            log("Time expired!")
+            end_game()
+        }
+    }
+}

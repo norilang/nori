@@ -1,19 +1,38 @@
+/*
+ * Networked Scoreboard — Click to add points, synced to all players
+ *
+ * Attach to a scoreboard object. Each click sends a networked
+ * event so every player sees the updated score.
+ *
+ * Features shown: sync none, fn (void), event, send to All,
+ *                 string interpolation {expr}, return (early exit),
+ *                 comparison (>=)
+ */
+
+// 'pub let' — inspector-visible, not synced
 pub let max_score: int = 10
+
+// 'sync none' — synced to all players with no interpolation
 sync none score: int = 0
+
 let is_game_over: bool = false
 
 on Start {
     log("Scoreboard ready!")
 }
 
+// 'fn' declares a local function (no networking, no return value)
 fn update_display() {
+    // String interpolation: {score} embeds the variable's value
     log("Score: {score}")
 }
 
+// 'event' declares a custom networked event
 event AddPoint {
     score = score + 1
     update_display()
     if score >= max_score {
+        // 'send ... to All' invokes the event on every player
         send GameOver to All
     }
 }
@@ -26,7 +45,7 @@ event GameOver {
 on Interact {
     if is_game_over {
         log("Game is over!")
-        return
+        return                // early exit from the event handler
     }
     send AddPoint to All
 }

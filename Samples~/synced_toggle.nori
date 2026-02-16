@@ -1,0 +1,74 @@
+/*
+ * Synced Toggle — Networked on/off switch with ownership
+ *
+ * Attach to an interactive object. When a player clicks it,
+ * the toggle state is synced to everyone via VRChat networking.
+ * Only the owner can modify synced variables.
+ *
+ * Features shown: sync linear, sync smooth,
+ *                 Networking.IsOwner(), Networking.SetOwner(),
+ *                 RequestSerialization(), localPlayer, gameObject,
+ *                 on VariableChange, on PreSerialization,
+ *                 send to Owner
+ */
+
+// 'sync none' — replicated without interpolation (good for bools)
+sync none is_on: bool = false
+
+// 'sync linear' — interpolated linearly between updates
+sync linear brightness: float = 0.0
+
+// 'sync smooth' — interpolated with smoothing (less jitter)
+sync smooth smooth_value: float = 0.0
+
+let pending_toggle: bool = false
+
+on Start {
+    log("Synced toggle ready")
+    // 'localPlayer' is the built-in local VRCPlayerApi
+    log("Local player: {localPlayer.displayName}")
+}
+
+on Interact {
+    // Check ownership before modifying synced vars
+    // Networking.IsOwner(player, gameObject) -> bool
+    if Networking.IsOwner(localPlayer, gameObject) {
+        // Already owner — toggle directly
+        do_toggle()
+    } else {
+        // Request ownership first, then toggle
+        // Networking.SetOwner(player, gameObject)
+        Networking.SetOwner(localPlayer, gameObject)
+        pending_toggle = true
+        log("Requested ownership...")
+    }
+}
+
+fn do_toggle() {
+    is_on = !is_on
+    if is_on {
+        brightness = 1.0
+        smooth_value = 1.0
+    } else {
+        brightness = 0.0
+        smooth_value = 0.0
+    }
+
+    // RequestSerialization() pushes synced vars to the network
+    RequestSerialization()
+    log("Toggled: {is_on}")
+}
+
+// 'on VariableChange' fires when synced variables are updated
+// from the network (on remote players)
+on VariableChange {
+    log("Received sync — is_on: {is_on}, brightness: {brightness}")
+}
+
+// 'on PreSerialization' fires just before data is sent
+on PreSerialization {
+    if pending_toggle {
+        do_toggle()
+        pending_toggle = false
+    }
+}

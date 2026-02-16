@@ -1,0 +1,76 @@
+/*
+ * Pickup Toy — Interactive pickup with trigger zones
+ *
+ * Attach to a GameObject with a VRC Pickup component and a
+ * trigger collider. Reacts to being picked up, dropped, and
+ * entering trigger zones.
+ *
+ * Features shown: on Pickup, on Drop, on PickupUseDown,
+ *                 on TriggerEnter(other: Collider),
+ *                 on TriggerExit(other: Collider),
+ *                 transform.localPosition, Mathf.Lerp() (float)
+ */
+
+let is_held: bool = false
+let use_count: int = 0
+let glow_amount: float = 0.0
+let target_glow: float = 0.0
+let triggers_touching: int = 0
+
+on Start {
+    log("Pickup toy ready — pick me up!")
+}
+
+// 'on Pickup' fires when a player grabs this object
+on Pickup {
+    is_held = true
+    log("Picked up!")
+}
+
+// 'on Drop' fires when the player releases it
+on Drop {
+    is_held = false
+    use_count = 0
+    target_glow = 0.0
+    log("Dropped — use count reset")
+}
+
+// 'on PickupUseDown' fires when the use button is pressed
+// while holding the object (trigger pull in VR, left-click in desktop)
+on PickupUseDown {
+    use_count += 1
+    target_glow = 1.0
+    log("Use #{use_count}!")
+
+    // Move the object up a little on each use
+    let pos: Vector3 = transform.localPosition
+    let new_y: float = pos.y + 0.1
+    transform.localPosition = Vector3.Lerp(pos, Vector3.up * new_y, 0.5)
+}
+
+// Trigger events receive the other Collider as a parameter
+on TriggerEnter(other: Collider) {
+    triggers_touching += 1
+    log("Entered trigger zone ({triggers_touching} touching)")
+}
+
+on TriggerExit(other: Collider) {
+    triggers_touching -= 1
+    if triggers_touching < 0 {
+        triggers_touching = 0
+    }
+    log("Exited trigger zone ({triggers_touching} touching)")
+}
+
+on Update {
+    // Mathf.Lerp(from, to, t) smoothly blends between floats
+    glow_amount = Mathf.Lerp(glow_amount, target_glow, 0.1)
+
+    // Slowly fade the glow back to zero
+    if target_glow > 0.0 {
+        target_glow = target_glow - Time.deltaTime * 0.5
+        if target_glow < 0.0 {
+            target_glow = 0.0
+        }
+    }
+}

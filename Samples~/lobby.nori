@@ -1,0 +1,59 @@
+/*
+ * Lobby — Player join/leave announcements
+ *
+ * Attach to any persistent world object. Logs messages when
+ * players enter or leave, and tracks the player count.
+ *
+ * Features shown: on PlayerJoined(player: Player),
+ *                 on PlayerLeft(player: Player),
+ *                 .displayName, .isLocal, .isMaster,
+ *                 while loop, fn with params + return type (-> int),
+ *                 compound assignment (-=)
+ */
+
+let player_count: int = 0
+
+on Start {
+    log("Lobby system ready")
+}
+
+// Events with parameters: 'player' is a Player (VRCPlayerApi)
+on PlayerJoined(player: Player) {
+    player_count += 1
+
+    // .displayName, .isLocal, .isMaster are Player properties
+    if player.isLocal {
+        log("Welcome! You are {player.displayName}")
+    } else {
+        log("{player.displayName} joined the world")
+    }
+
+    if player.isMaster {
+        log("{player.displayName} is the instance master")
+    }
+
+    log("Players online: {player_count}")
+}
+
+on PlayerLeft(player: Player) {
+    player_count -= 1               // '-=' compound subtraction
+    log("{player.displayName} left — {player_count} remaining")
+}
+
+// fn with a return type: '-> int' after the parameter list
+fn countdown(start: int) -> int {
+    let n: int = start
+
+    // 'while' loops until the condition is false
+    while n > 0 {
+        log("Countdown: {n}")
+        n -= 1
+    }
+
+    return n                         // returns 0
+}
+
+on Interact {
+    let result: int = countdown(5)
+    log("Countdown finished at {result}")
+}
