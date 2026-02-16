@@ -52,7 +52,7 @@ namespace Nori
             EditorSetupWizard.ShowWindow();
         }
 
-        [MenuItem("Assets/Create/Nori Script", false, 80)]
+        [MenuItem("Assets/Create/Nori Script", false, 6)]
         public static void CreateNoriScript()
         {
             const string template =
