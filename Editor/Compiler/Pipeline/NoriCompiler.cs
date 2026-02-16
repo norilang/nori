@@ -36,6 +36,9 @@ namespace Nori.Compiler
             var lowering = new IrLowering(ast, diagnostics, catalog);
             var ir = lowering.Lower();
 
+            // Phase 4.5: IR Optimization
+            IrOptimizer.CreateDefault().Optimize(ir);
+
             // Phase 5: Emit Udon Assembly
             var emitter = new UdonEmitter(ir);
             var uasm = emitter.Emit();
