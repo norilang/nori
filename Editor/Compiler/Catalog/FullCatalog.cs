@@ -270,6 +270,17 @@ namespace Nori.Compiler
                     return new OperatorInfo(info.Extern, info.ReturnType, "SystemSingle", "SystemSingle");
             }
 
+            // Object fallback for equality/inequality (null comparisons)
+            if (op == TokenKind.EqualsEquals || op == TokenKind.BangEquals)
+            {
+                if (leftType == "SystemObject" || rightType == "SystemObject")
+                {
+                    if (_operators.TryGetValue((op, "SystemObject", "SystemObject"), out info))
+                        return new OperatorInfo(info.Extern, info.ReturnType,
+                            "SystemObject", "SystemObject");
+                }
+            }
+
             return _fallback.ResolveOperator(op, leftType, rightType);
         }
 

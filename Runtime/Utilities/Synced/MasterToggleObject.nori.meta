@@ -1,0 +1,11 @@
+fileFormatVersion: 2
+guid: 76bd75e26916e49448be58bc4b610acc
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"toggle_object","TypeName":"GameObject","DefaultValue":"","SyncMode":""}],"SyncVars":[{"Name":"is_enabled","TypeName":"bool","DefaultValue":"","SyncMode":"none"}],"Events":["Start","Interact","VariableChange"],"CustomEvents":[],"Functions":[],"ErrorCount":3,"WarningCount":0}'

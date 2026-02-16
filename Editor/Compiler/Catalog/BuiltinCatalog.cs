@@ -156,6 +156,12 @@ namespace Nori.Compiler
                 "SystemBoolean.__op_ConditionalAnd__SystemBoolean_SystemBoolean__SystemBoolean", "SystemBoolean");
             AddOp(TokenKind.Or, "SystemBoolean",
                 "SystemBoolean.__op_ConditionalOr__SystemBoolean_SystemBoolean__SystemBoolean", "SystemBoolean");
+
+            // Object equality/inequality (used for null comparisons: obj == null, obj != null)
+            AddOp(TokenKind.EqualsEquals, "SystemObject",
+                "SystemObject.__op_Equality__SystemObject_SystemObject__SystemBoolean", "SystemBoolean");
+            AddOp(TokenKind.BangEquals, "SystemObject",
+                "SystemObject.__op_Inequality__SystemObject_SystemObject__SystemBoolean", "SystemBoolean");
         }
 
         private void RegisterStringOperations()
@@ -459,6 +465,17 @@ namespace Nori.Compiler
             {
                 if (_operators.TryGetValue((op, "SystemSingle", "SystemSingle"), out info))
                     return new OperatorInfo(info.Extern, info.ReturnType, "SystemSingle", "SystemSingle");
+            }
+
+            // Object fallback for equality/inequality (null comparisons)
+            if (op == TokenKind.EqualsEquals || op == TokenKind.BangEquals)
+            {
+                if (leftType == "SystemObject" || rightType == "SystemObject")
+                {
+                    if (_operators.TryGetValue((op, "SystemObject", "SystemObject"), out info))
+                        return new OperatorInfo(info.Extern, info.ReturnType,
+                            "SystemObject", "SystemObject");
+                }
             }
 
             return null;

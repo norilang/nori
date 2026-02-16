@@ -1,0 +1,25 @@
+pub let toggle_object: GameObject = null
+sync none is_enabled: bool = false
+
+on Start {
+    if toggle_object != null {
+        is_enabled = toggle_object.activeSelf
+    }
+}
+
+on Interact {
+    if !Networking.IsOwner(localPlayer, gameObject) {
+        Networking.SetOwner(localPlayer, gameObject)
+    }
+    is_enabled = !is_enabled
+    if toggle_object != null {
+        toggle_object.SetActive(is_enabled)
+    }
+    RequestSerialization()
+}
+
+on VariableChange {
+    if toggle_object != null {
+        toggle_object.SetActive(is_enabled)
+    }
+}

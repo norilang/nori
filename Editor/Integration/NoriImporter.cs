@@ -9,7 +9,7 @@ using Nori.Compiler;
 
 namespace Nori
 {
-    [ScriptedImporter(2, "nori")]
+    [ScriptedImporter(6, "nori")]
     public class NoriImporter : ScriptedImporter
     {
         // Cached reflection lookups
@@ -43,11 +43,22 @@ namespace Nori
 
         /// <summary>
         /// Returns the companion .asset path for a given .nori file.
-        /// Example: "Assets/Scripts/Timer.nori" → "Assets/Scripts/Timer.nori.asset"
+        /// For Assets/ paths: "Assets/Scripts/Timer.nori" → "Assets/Scripts/Timer.asset"
+        /// For Packages/ paths: redirects to "Assets/Nori/Generated/{relative}.asset" since packages are read-only.
         /// </summary>
         public static string GetCompanionAssetPath(string noriPath)
         {
-            return noriPath + ".asset";
+            // Strip .nori extension so companion is Timer.asset, not Timer.nori.asset
+            string basePath = noriPath.EndsWith(".nori")
+                ? noriPath.Substring(0, noriPath.Length - ".nori".Length)
+                : noriPath;
+
+            if (noriPath.StartsWith("Packages/"))
+            {
+                string relative = basePath.Substring("Packages/".Length);
+                return "Assets/Nori/Generated/" + relative + ".asset";
+            }
+            return basePath + ".asset";
         }
 
         public override void OnImportAsset(AssetImportContext ctx)
@@ -78,10 +89,14 @@ namespace Nori
                     ctx.LogImportWarning(msg);
             }
 
-            // Create source TextAsset as main object
+            // Create source TextAsset as main object, with custom icon
             var sourceAsset = new TextAsset(source);
             sourceAsset.name = Path.GetFileNameWithoutExtension(ctx.assetPath);
-            ctx.AddObjectToAsset("source", sourceAsset);
+            var icon = LoadNoriIcon();
+            if (icon != null)
+                ctx.AddObjectToAsset("source", sourceAsset, icon);
+            else
+                ctx.AddObjectToAsset("source", sourceAsset);
             ctx.SetMainObject(sourceAsset);
 
             if (!result.Success)
@@ -95,10 +110,27 @@ namespace Nori
             // Schedule companion .asset creation/update after import completes
             string noriPath = ctx.assetPath;
             string uasm = result.Uasm;
-            // Name must match the companion filename stem (e.g., "Timer.nori" for "Timer.nori.asset")
+            // Name must match the companion filename stem (e.g., "Timer" for "Timer.asset")
             // so Unity doesn't warn about a main-object/filename mismatch.
-            string displayName = Path.GetFileName(noriPath);
+            string displayName = Path.GetFileNameWithoutExtension(noriPath);
             EditorApplication.delayCall += () => CreateOrUpdateCompanionAsset(noriPath, uasm, displayName);
+        }
+
+        /// <summary>
+        /// Loads the nori icon from disk bytes. This avoids import-ordering issues
+        /// where AssetDatabase.LoadAssetAtPath returns null during OnImportAsset.
+        /// </summary>
+        private static Texture2D LoadNoriIcon()
+        {
+            const string iconPackagePath = "Packages/dev.nori.compiler/Editor/Resources/nori-source-icon.png";
+            string fullPath = Path.GetFullPath(iconPackagePath);
+            if (!File.Exists(fullPath))
+                return null;
+
+            var tex = new Texture2D(2, 2);
+            tex.LoadImage(File.ReadAllBytes(fullPath));
+            tex.name = "nori-icon";
+            return tex;
         }
 
         /// <summary>
@@ -126,6 +158,11 @@ namespace Nori
                 }
                 else
                 {
+                    // Ensure directory exists (needed for Packages/ redirected paths)
+                    string dir = Path.GetDirectoryName(companionPath);
+                    if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                        Directory.CreateDirectory(dir);
+
                     programAsset = ScriptableObject.CreateInstance(_programAssetType);
                     AssetDatabase.CreateAsset(programAsset, companionPath);
                 }
@@ -141,6 +178,12 @@ namespace Nori
                     udonAssemblyProp.stringValue = uasm;
                     serializedObj.ApplyModifiedPropertiesWithoutUndo();
                 }
+
+                // Set the nori icon on the companion asset
+                var icon = AssetDatabase.LoadAssetAtPath<Texture2D>(
+                    "Packages/dev.nori.compiler/Editor/Resources/nori-icon.png");
+                if (icon != null)
+                    EditorGUIUtility.SetIconForObject(programAsset, icon);
 
                 EditorUtility.SetDirty(programAsset);
 

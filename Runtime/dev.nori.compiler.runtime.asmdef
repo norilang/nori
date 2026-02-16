@@ -1,12 +1,8 @@
 {
-    "name": "dev.nori.compiler.editor",
+    "name": "dev.nori.compiler.runtime",
     "rootNamespace": "Nori",
-    "references": [
-        "dev.nori.compiler.runtime"
-    ],
-    "includePlatforms": [
-        "Editor"
-    ],
+    "references": [],
+    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
