@@ -1,0 +1,103 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      HAS_VCC_TOKEN: ${{ secrets.VCC_DEPLOY_TOKEN != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          echo "version=$TAG" >> "$GITHUB_OUTPUT"
+          echo "tag=v$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Verify package.json version matches tag
+        run: |
+          PKG_VERSION=$(jq -r .version package.json)
+          if [ "$PKG_VERSION" != "${{ steps.version.outputs.version }}" ]; then
+            echo "::error::package.json version ($PKG_VERSION) does not match tag (${{ steps.version.outputs.version }})"
+            exit 1
+          fi
+          echo "Version verified: $PKG_VERSION"
+
+      - name: Build package zip
+        run: |
+          ZIP_NAME="dev.nori.compiler-${{ steps.version.outputs.version }}.zip"
+          zip -r "$ZIP_NAME" . \
+            -x ".git/*" \
+            -x ".gitignore" \
+            -x ".github/*" \
+            -x "vcc-listing/*" \
+            -x "docs-site~/*"
+          echo "zip_name=$ZIP_NAME" >> "$GITHUB_ENV"
+
+      - name: Compute SHA256
+        id: sha
+        run: |
+          SHA=$(sha256sum "$zip_name" | awk '{print $1}')
+          echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
+          echo "SHA256: $SHA"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" "$zip_name" \
+            --title "${{ steps.version.outputs.tag }}" \
+            --generate-notes
+
+      - name: Update VCC listing
+        if: env.HAS_VCC_TOKEN == 'true'
+        env:
+          VCC_DEPLOY_TOKEN: ${{ secrets.VCC_DEPLOY_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          SHA="${{ steps.sha.outputs.sha256 }}"
+          ZIP_URL="https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/$zip_name"
+
+          # Clone VCC listing repo
+          git clone "https://x-access-token:${VCC_DEPLOY_TOKEN}@github.com/norilang/vcc.git" vcc-repo
+          cd vcc-repo
+
+          # Build the new version entry from package.json
+          NEW_ENTRY=$(jq --arg url "$ZIP_URL" --arg sha "$SHA" \
+            '. + {url: $url, zipSHA256: $sha}' ../package.json)
+
+          # Add the new version to index.json
+          jq --arg v "$VERSION" --argjson entry "$NEW_ENTRY" \
+            '.packages["dev.nori.compiler"].versions[$v] = $entry' \
+            index.json > index.json.tmp
+          mv index.json.tmp index.json
+
+          # Update the version badge in index.html
+          sed -i "s|<span class=\"version\">v[^<]*</span>|<span class=\"version\">v${VERSION}</span>|" index.html
+
+          # Commit and push
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.json index.html
+          git commit -m "Update listing for v${VERSION}"
+          git push
+
+      - name: Print manual update info
+        if: env.HAS_VCC_TOKEN != 'true'
+        run: |
+          ZIP_URL="https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/$zip_name"
+          echo "::notice::VCC_DEPLOY_TOKEN not configured — update the VCC listing manually."
+          echo ""
+          echo "Version: ${{ steps.version.outputs.version }}"
+          echo "SHA256:  ${{ steps.sha.outputs.sha256 }}"
+          echo "URL:     $ZIP_URL"

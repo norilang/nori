@@ -8,7 +8,7 @@
   "keywords": ["vrchat", "udon", "language", "compiler"],
   "author": {
     "name": "Nori Contributors",
-    "url": "https://github.com/nori-lang/nori"
+    "url": "https://github.com/norilang/nori"
   },
   "dependencies": {}
 }
