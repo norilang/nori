@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using UnityEditor;
@@ -30,6 +31,73 @@ namespace Nori
         {
             _reflectionCacheInitialized = false;
             _programAssetType = null;
+        }
+
+        // --- Project window custom icon overlay for companion .asset files ---
+
+        private static HashSet<string> _companionGuids;
+        private static Texture2D _companionIcon;
+
+        [InitializeOnLoadMethod]
+        private static void RegisterProjectBrowserIcon()
+        {
+            EditorApplication.projectWindowItemOnGUI -= OnProjectWindowItem;
+            EditorApplication.projectWindowItemOnGUI += OnProjectWindowItem;
+            _companionGuids = null; // Rebuild on next draw
+        }
+
+        private static void OnProjectWindowItem(string guid, Rect rect)
+        {
+            if (_companionGuids == null) RebuildCompanionGuids();
+            if (!_companionGuids.Contains(guid)) return;
+
+            if (_companionIcon == null)
+            {
+                _companionIcon = AssetDatabase.LoadAssetAtPath<Texture2D>(
+                    "Packages/dev.nori.compiler/Editor/Resources/nori-icon.png");
+                if (_companionIcon == null) return;
+            }
+
+            // List view: rect height ≈ 16, icon is a small square at the left
+            // Grid/thumbnail view: rect is taller, icon fills the upper square area
+            Rect iconRect;
+            if (rect.height <= 20)
+                iconRect = new Rect(rect.x, rect.y, rect.height, rect.height);
+            else
+                iconRect = new Rect(rect.x, rect.y, rect.width, rect.width);
+
+            GUI.DrawTexture(iconRect, _companionIcon, ScaleMode.ScaleToFit);
+        }
+
+        private static void RebuildCompanionGuids()
+        {
+            _companionGuids = new HashSet<string>();
+
+            // Companions alongside .nori files in Assets/
+            if (Directory.Exists("Assets"))
+            {
+                foreach (string file in Directory.GetFiles("Assets", "*.nori", SearchOption.AllDirectories))
+                {
+                    string noriPath = file.Replace('\\', '/');
+                    string companionPath = GetCompanionAssetPath(noriPath);
+                    string g = AssetDatabase.AssetPathToGUID(companionPath);
+                    if (!string.IsNullOrEmpty(g))
+                        _companionGuids.Add(g);
+                }
+            }
+
+            // Companions generated from package .nori files (always under this dir)
+            string genDir = "Assets/Nori/Generated";
+            if (Directory.Exists(genDir))
+            {
+                foreach (string file in Directory.GetFiles(genDir, "*.asset", SearchOption.AllDirectories))
+                {
+                    string assetPath = file.Replace('\\', '/');
+                    string g = AssetDatabase.AssetPathToGUID(assetPath);
+                    if (!string.IsNullOrEmpty(g))
+                        _companionGuids.Add(g);
+                }
+            }
         }
 
         private static void EnsureReflectionCache()
@@ -197,6 +265,7 @@ namespace Nori
                 }
 
                 AssetDatabase.SaveAssets();
+                _companionGuids = null; // Invalidate so project window picks up new companion
             }
             catch (Exception e)
             {
