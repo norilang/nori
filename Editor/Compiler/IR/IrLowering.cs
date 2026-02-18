@@ -681,7 +681,7 @@ namespace Nori.Compiler
                     return GetOrCreateConstant("SystemString", $"\"{EscapeString(strLit.Value)}\"");
 
                 case NullLiteralExpr _:
-                    return GetOrCreateConstant("SystemObject", "null");
+                    return GetOrCreateConstant("UnityEngineObject", "null");
 
                 case InterpolatedStringExpr interp:
                     return LowerInterpolation(interp);
@@ -805,6 +805,31 @@ namespace Nori.Compiler
             if (binary.RightConversion != null)
             {
                 rightVar = EmitConversion(rightVar, binary.RightConversion);
+            }
+
+            // Arrays derive from System.Array, not UnityEngine.Object.
+            // The default op_Equality(UnityEngine.Object, UnityEngine.Object) causes a
+            // heap type mismatch because the VM can't read a GameObject[] as UnityEngine.Object.
+            // Use SystemObject.__Equals__(System.Object, System.Object) instead — System.Object
+            // is the universal base type and accepts any heap variable type.
+            if ((binary.Op == TokenKind.EqualsEquals || binary.Op == TokenKind.BangEquals)
+                && HasArrayOperand(binary))
+            {
+                string eqResult = AllocTemp("SystemBoolean");
+                Emit(new IrPush(leftVar));
+                Emit(new IrPush(rightVar));
+                Emit(new IrPush(eqResult));
+                Emit(new IrExtern("SystemObject.__Equals__SystemObject_SystemObject__SystemBoolean"));
+
+                if (binary.Op == TokenKind.BangEquals)
+                {
+                    string negResult = AllocTemp("SystemBoolean");
+                    Emit(new IrPush(eqResult));
+                    Emit(new IrPush(negResult));
+                    Emit(new IrExtern("SystemBoolean.__op_UnaryNegation__SystemBoolean__SystemBoolean"));
+                    return negResult;
+                }
+                return eqResult;
             }
 
             string resultType = binary.ResolvedType ?? "SystemObject";
@@ -1169,6 +1194,14 @@ namespace Nori.Compiler
             Emit(new IrPush(convertedVar));
             Emit(new IrExtern(conversion.ConversionExtern));
             return convertedVar;
+        }
+
+        private static bool HasArrayOperand(BinaryExpr binary)
+        {
+            string leftType = binary.Left.ResolvedType;
+            string rightType = binary.Right.ResolvedType;
+            return (leftType != null && leftType.EndsWith("Array")) ||
+                   (rightType != null && rightType.EndsWith("Array"));
         }
     }
 }

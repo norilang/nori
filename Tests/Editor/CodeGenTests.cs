@@ -362,6 +362,83 @@ on Start {
             Assert.That(result.Uasm, Does.Contain("%UnityEngineSpace"));
         }
 
+        [Test]
+        public void Null_Comparison_Uses_UnityEngineObject_Extern()
+        {
+            var result = Compile(@"
+pub let target: GameObject = null
+on Start {
+    if target == null {
+        log(""no target"")
+    }
+}
+");
+            Assert.IsTrue(result.Success, FormatErrors(result));
+            Assert.That(result.Uasm,
+                Does.Contain("UnityEngineObject.__op_Equality__UnityEngineObject_UnityEngineObject__SystemBoolean"));
+            Assert.That(result.Uasm,
+                Does.Not.Contain("SystemObject.__op_Equality"));
+        }
+
+        [Test]
+        public void Null_Inequality_Uses_UnityEngineObject_Extern()
+        {
+            var result = Compile(@"
+pub let target: GameObject = null
+on Start {
+    if target != null {
+        log(""has target"")
+    }
+}
+");
+            Assert.IsTrue(result.Success, FormatErrors(result));
+            Assert.That(result.Uasm,
+                Does.Contain("UnityEngineObject.__op_Inequality__UnityEngineObject_UnityEngineObject__SystemBoolean"));
+            Assert.That(result.Uasm,
+                Does.Not.Contain("SystemObject.__op_Inequality"));
+        }
+
+        [Test]
+        public void Array_Null_Equality_Uses_SystemObject_Equals()
+        {
+            var result = Compile(@"
+pub let lights: GameObject[] = null
+on Start {
+    if lights == null {
+        log(""no lights"")
+    }
+}
+");
+            Assert.IsTrue(result.Success, FormatErrors(result));
+            // Array types derive from System.Array, not UnityEngine.Object.
+            // Must use SystemObject.__Equals__ instead of UnityEngineObject.__op_Equality__.
+            Assert.That(result.Uasm,
+                Does.Contain("SystemObject.__Equals__SystemObject_SystemObject__SystemBoolean"));
+            Assert.That(result.Uasm,
+                Does.Not.Contain("UnityEngineObject.__op_Equality"));
+        }
+
+        [Test]
+        public void Array_Null_Inequality_Uses_SystemObject_Equals_With_Negation()
+        {
+            var result = Compile(@"
+pub let lights: GameObject[] = null
+on Start {
+    if lights != null {
+        log(""has lights"")
+    }
+}
+");
+            Assert.IsTrue(result.Success, FormatErrors(result));
+            // arr != null compiles as !SystemObject.Equals(arr, null)
+            Assert.That(result.Uasm,
+                Does.Contain("SystemObject.__Equals__SystemObject_SystemObject__SystemBoolean"));
+            Assert.That(result.Uasm,
+                Does.Contain("SystemBoolean.__op_UnaryNegation__SystemBoolean__SystemBoolean"));
+            Assert.That(result.Uasm,
+                Does.Not.Contain("UnityEngineObject.__op_Inequality"));
+        }
+
         private string FormatErrors(CompileResult result)
         {
             if (result.Success) return "";

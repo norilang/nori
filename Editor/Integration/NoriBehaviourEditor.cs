@@ -37,8 +37,11 @@ namespace Nori
         // Reflection caches for IUdonVariableTable
         private static ReflectionMethodInfo _tryGetVariableValueMethod;
         private static ReflectionMethodInfo _trySetVariableValueMethod;
+        private static ReflectionMethodInfo _tryAddVariableMethod;
+        private static ReflectionMethodInfo _removeVariableMethod;
         private static ReflectionPropertyInfo _publicVariablesProperty;
         private static ReflectionMethodInfo _getVariableNamesMethod;
+        private static Type _udonVariableGenericType;
         private static bool _variableReflectionInitialized;
 
         private static void EnsureCache()
@@ -87,7 +90,15 @@ namespace Nori
                     _tryGetVariableValueMethod = m;
                 else if (m.Name == "TrySetVariableValue" && !m.IsGenericMethod)
                     _trySetVariableValueMethod = m;
+                else if (m.Name == "TryAddVariable" && !m.IsGenericMethod)
+                    _tryAddVariableMethod = m;
+                else if (m.Name == "RemoveVariable" && !m.IsGenericMethod)
+                    _removeVariableMethod = m;
             }
+
+            // UdonVariable<T> — needed to create typed variables in publicVariables
+            _udonVariableGenericType = Type.GetType(
+                "VRC.Udon.Common.UdonVariable`1, VRC.Udon.Common");
         }
 
         private void OnEnable()
@@ -495,6 +506,9 @@ namespace Nori
             if (metadata == null || metadata.PublicVars.Count == 0)
                 return;
 
+            // Reconcile stale override metadata against current compilation metadata
+            ReconcileOverrideMetadata(proxy, metadata);
+
             EditorGUILayout.Space(5);
             _showPublicVars = EditorGUILayout.Foldout(_showPublicVars, "Public Variables");
             if (!_showPublicVars)
@@ -538,12 +552,18 @@ namespace Nori
                         varInfo.IsArray, newValue);
                     EditorUtility.SetDirty(proxy);
 
-                    // Also push to UdonBehaviour if its variable table is available
-                    if (pubVars != null && _trySetVariableValueMethod != null)
+                    // Also push to UdonBehaviour's publicVariables table
+                    if (pubVars != null && _tryAddVariableMethod != null)
                     {
                         Undo.RecordObject(_udonBehaviour, $"Change {varInfo.Name}");
-                        _trySetVariableValueMethod.Invoke(pubVars,
-                            new[] { varInfo.Name, newValue });
+                        object pushValue = newValue;
+                        if (varInfo.IsArray && IsObjectReferenceType(varInfo.TypeName)
+                            && newValue is System.Collections.Generic.List<UnityEngine.Object> objList)
+                        {
+                            pushValue = ConvertObjectListToArray(varInfo.TypeName, objList);
+                        }
+                        SetVariableInTable(pubVars, varInfo.Name, varInfo.TypeName,
+                            varInfo.IsArray, pushValue);
                         EditorUtility.SetDirty(_udonBehaviour);
                     }
                 }
@@ -598,6 +618,10 @@ namespace Nori
                 proxy._varOverrides.Add(existing);
             }
 
+            // Always sync metadata — type or isArray may have changed since the override was created
+            existing.type = typeName;
+            existing.isArray = isArray;
+
             if (isArray)
             {
                 if (IsObjectReferenceType(typeName))
@@ -619,9 +643,78 @@ namespace Nori
                 existing.serializedValue = SerializeValue(typeName, value);
         }
 
+        /// <summary>
+        /// Sets a variable in the UdonBehaviour's publicVariables table, creating it if needed.
+        /// Uses Remove + TryAddVariable(new UdonVariable&lt;T&gt;(name, value)) which works
+        /// regardless of whether TrySetVariableValue exists as a non-generic overload.
+        /// Since we hide the UdonBehaviour (VRC's own editor never runs), we must manage
+        /// the publicVariables entries ourselves.
+        /// </summary>
+        private static void SetVariableInTable(object pubVars, string name,
+            string typeName, bool isArray, object value)
+        {
+            if (_tryAddVariableMethod == null || _udonVariableGenericType == null)
+                return;
+
+            // Resolve .NET runtime type from Nori type name
+            Type runtimeType = ResolveRuntimeType(typeName, isArray);
+            if (runtimeType == null) return;
+
+            // Remove existing variable (if any) so TryAddVariable succeeds
+            try
+            {
+                if (_removeVariableMethod != null)
+                    _removeVariableMethod.Invoke(pubVars, new object[] { name });
+            }
+            catch { /* variable might not exist yet — that's fine */ }
+
+            // Create UdonVariable<T> with the actual value and add to table
+            try
+            {
+                Type specificType = _udonVariableGenericType.MakeGenericType(runtimeType);
+                // Coerce the value to the expected runtime type
+                object typedValue = CoerceValue(value, runtimeType);
+                var udonVar = Activator.CreateInstance(specificType, name, typedValue);
+                _tryAddVariableMethod.Invoke(pubVars, new[] { udonVar });
+            }
+            catch { /* silently ignore if types can't be resolved */ }
+        }
+
+        private static object CoerceValue(object value, Type targetType)
+        {
+            if (value == null)
+                return targetType.IsValueType ? Activator.CreateInstance(targetType) : null;
+            if (targetType.IsInstanceOfType(value))
+                return value;
+            // Try Convert for value types (e.g., boxed int -> float)
+            try { return Convert.ChangeType(value, targetType); }
+            catch { return targetType.IsValueType ? Activator.CreateInstance(targetType) : null; }
+        }
+
+        private static Type ResolveRuntimeType(string typeName, bool isArray)
+        {
+            Type elemType;
+            switch (typeName)
+            {
+                case "int": case "Int32": elemType = typeof(int); break;
+                case "float": case "Single": elemType = typeof(float); break;
+                case "double": case "Double": elemType = typeof(double); break;
+                case "bool": case "Boolean": elemType = typeof(bool); break;
+                case "string": case "String": elemType = typeof(string); break;
+                case "Vector2": elemType = typeof(Vector2); break;
+                case "Vector3": elemType = typeof(Vector3); break;
+                case "Quaternion": elemType = typeof(Quaternion); break;
+                case "Color": elemType = typeof(Color); break;
+                case "GameObject": elemType = typeof(GameObject); break;
+                case "Transform": elemType = typeof(Transform); break;
+                default: elemType = typeof(UnityEngine.Object); break;
+            }
+            return isArray ? elemType.MakeArrayType() : elemType;
+        }
+
         private void SyncOverridesToUdon(NoriBehaviour proxy, object pubVars)
         {
-            if (pubVars == null || _trySetVariableValueMethod == null)
+            if (pubVars == null || _tryAddVariableMethod == null)
                 return;
             if (proxy._varOverrides.Count == 0)
                 return;
@@ -641,8 +734,93 @@ namespace Nori
                 else
                     value = DeserializeValue(ov.type, ov.serializedValue);
 
-                _trySetVariableValueMethod.Invoke(pubVars, new[] { ov.name, value });
+                SetVariableInTable(pubVars, ov.name, ov.type, ov.isArray, value);
             }
+
+            // Ensure pushed values survive serialization (scene save, build, play mode)
+            if (_udonBehaviour != null)
+                EditorUtility.SetDirty(_udonBehaviour);
+        }
+
+        [InitializeOnLoadMethod]
+        private static void RegisterPlayModeSync()
+        {
+            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        }
+
+        private static void OnPlayModeStateChanged(PlayModeStateChange state)
+        {
+            if (state != PlayModeStateChange.ExitingEditMode)
+                return;
+
+            EnsureCache();
+            EnsureVariableReflection();
+            if (_udonBehaviourType == null || _publicVariablesProperty == null)
+                return;
+
+            foreach (var proxy in UnityEngine.Object.FindObjectsOfType<NoriBehaviour>())
+            {
+                if (proxy._varOverrides.Count == 0)
+                    continue;
+
+                var udon = proxy.GetComponent(_udonBehaviourType);
+                if (udon == null)
+                    continue;
+
+                var pubVars = _publicVariablesProperty.GetValue(udon);
+                if (pubVars == null || _tryAddVariableMethod == null)
+                    continue;
+
+                // Reconcile stale override metadata before pushing
+                var importer = AssetImporter.GetAtPath(proxy.NoriScriptPath) as NoriImporter;
+                var metadata = importer?.GetMetadata();
+                if (metadata != null)
+                    ReconcileOverrideMetadata(proxy, metadata);
+
+                foreach (var ov in proxy._varOverrides)
+                {
+                    object value;
+                    if (ov.isArray)
+                    {
+                        if (IsObjectReferenceType(ov.type))
+                            value = ConvertObjectListToArray(ov.type, ov.objectReferences);
+                        else
+                            value = ConvertValueListToArray(ov.type, ov.serializedValue);
+                    }
+                    else if (IsObjectReferenceType(ov.type))
+                        value = ov.objectReference;
+                    else
+                        value = DeserializeValue(ov.type, ov.serializedValue);
+
+                    SetVariableInTable(pubVars, ov.name, ov.type, ov.isArray, value);
+                }
+
+                EditorUtility.SetDirty(udon);
+            }
+        }
+
+        private static void ReconcileOverrideMetadata(NoriBehaviour proxy, NoriCompileMetadata metadata)
+        {
+            bool changed = false;
+            foreach (var varInfo in metadata.PublicVars)
+            {
+                foreach (var ov in proxy._varOverrides)
+                {
+                    if (ov.name == varInfo.Name)
+                    {
+                        if (ov.isArray != varInfo.IsArray || ov.type != varInfo.TypeName)
+                        {
+                            ov.isArray = varInfo.IsArray;
+                            ov.type = varInfo.TypeName;
+                            changed = true;
+                        }
+                        break;
+                    }
+                }
+            }
+            if (changed)
+                EditorUtility.SetDirty(proxy);
         }
 
         private static object ConvertObjectListToArray(string elemType,

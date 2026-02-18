@@ -158,10 +158,13 @@ namespace Nori.Compiler
                 "SystemBoolean.__op_ConditionalOr__SystemBoolean_SystemBoolean__SystemBoolean", "SystemBoolean");
 
             // Object equality/inequality (used for null comparisons: obj == null, obj != null)
-            AddOp(TokenKind.EqualsEquals, "SystemObject",
-                "SystemObject.__op_Equality__SystemObject_SystemObject__SystemBoolean", "SystemBoolean");
-            AddOp(TokenKind.BangEquals, "SystemObject",
-                "SystemObject.__op_Inequality__SystemObject_SystemObject__SystemBoolean", "SystemBoolean");
+            // Uses UnityEngine.Object which has explicit op_Equality/op_Inequality (whitelisted in Udon).
+            // System.Object does NOT define operator== as a method — it's a C# language feature.
+            _knownTypes.Add("UnityEngineObject");
+            AddOp(TokenKind.EqualsEquals, "UnityEngineObject",
+                "UnityEngineObject.__op_Equality__UnityEngineObject_UnityEngineObject__SystemBoolean", "SystemBoolean");
+            AddOp(TokenKind.BangEquals, "UnityEngineObject",
+                "UnityEngineObject.__op_Inequality__UnityEngineObject_UnityEngineObject__SystemBoolean", "SystemBoolean");
         }
 
         private void RegisterStringOperations()
@@ -468,14 +471,12 @@ namespace Nori.Compiler
             }
 
             // Object fallback for equality/inequality (null comparisons)
+            // Any reference type reaching here legitimately needs UnityEngine.Object's operator==
             if (op == TokenKind.EqualsEquals || op == TokenKind.BangEquals)
             {
-                if (leftType == "SystemObject" || rightType == "SystemObject")
-                {
-                    if (_operators.TryGetValue((op, "SystemObject", "SystemObject"), out info))
-                        return new OperatorInfo(info.Extern, info.ReturnType,
-                            "SystemObject", "SystemObject");
-                }
+                if (_operators.TryGetValue((op, "UnityEngineObject", "UnityEngineObject"), out info))
+                    return new OperatorInfo(info.Extern, info.ReturnType,
+                        "UnityEngineObject", "UnityEngineObject");
             }
 
             return null;

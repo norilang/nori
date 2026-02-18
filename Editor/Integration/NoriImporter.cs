@@ -10,7 +10,7 @@ using Nori.Compiler;
 
 namespace Nori
 {
-    [ScriptedImporter(6, "nori")]
+    [ScriptedImporter(7, "nori")]
     public class NoriImporter : ScriptedImporter
     {
         // Cached reflection lookups

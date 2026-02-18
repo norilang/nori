@@ -271,14 +271,12 @@ namespace Nori.Compiler
             }
 
             // Object fallback for equality/inequality (null comparisons)
+            // Any reference type reaching here legitimately needs UnityEngine.Object's operator==
             if (op == TokenKind.EqualsEquals || op == TokenKind.BangEquals)
             {
-                if (leftType == "SystemObject" || rightType == "SystemObject")
-                {
-                    if (_operators.TryGetValue((op, "SystemObject", "SystemObject"), out info))
-                        return new OperatorInfo(info.Extern, info.ReturnType,
-                            "SystemObject", "SystemObject");
-                }
+                if (_operators.TryGetValue((op, "UnityEngineObject", "UnityEngineObject"), out info))
+                    return new OperatorInfo(info.Extern, info.ReturnType,
+                        "UnityEngineObject", "UnityEngineObject");
             }
 
             return _fallback.ResolveOperator(op, leftType, rightType);
