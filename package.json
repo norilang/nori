@@ -1,7 +1,7 @@
 {
   "name": "dev.nori.compiler",
   "displayName": "Nori Language",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A clear, friendly programming language for VRChat worlds.",
   "unity": "2022.3",
   "documentationUrl": "https://nori-lang.dev",

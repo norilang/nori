@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.2] - 2026-02-20
+
+### Fixed
+- Variable scoping bug in for-range/for-each loops where renamed heap vars were not resolved correctly in loop bodies
+
+### Added
+- Quaternion.Euler(float, float, float) support in BuiltinCatalog
+- CLAUDE.md project configuration for AI-assisted development
+
+### Improved
+- door.nori sample uses transform.localRotation with Quaternion.Euler for proper rotation
+
 ## [0.1.1] - 2026-02-16
 
 ### Added
