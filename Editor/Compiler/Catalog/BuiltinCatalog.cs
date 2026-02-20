@@ -391,6 +391,11 @@ namespace Nori.Compiler
 
             AddStaticProperty("UnityEngineQuaternion", "identity", "UnityEngineQuaternion",
                 "UnityEngineQuaternion.__get_identity__UnityEngineQuaternion");
+
+            AddStaticMethod("UnityEngineQuaternion", "Euler", new ExternSignature(
+                "UnityEngineQuaternion.__Euler__SystemSingle_SystemSingle_SystemSingle__UnityEngineQuaternion",
+                new[] { "SystemSingle", "SystemSingle", "SystemSingle" },
+                "UnityEngineQuaternion", false));
         }
 
         private void RegisterMathfMethods()

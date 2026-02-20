@@ -6,7 +6,8 @@
  *
  * Features shown: pub let, let, bool/float types, if/else,
  *                 on Update, Time.deltaTime, arithmetic,
- *                 negation (!), comparison (!=, <, >)
+ *                 negation (!), comparison (!=, <, >),
+ *                 transform.localRotation, Quaternion.Euler
  */
 
 // 'pub let' exposes the variable in the Unity inspector
@@ -42,5 +43,6 @@ on Update {
                 current_angle = target_angle
             }
         }
+        transform.localRotation = Quaternion.Euler(0.0, current_angle, 0.0)
     }
 }
