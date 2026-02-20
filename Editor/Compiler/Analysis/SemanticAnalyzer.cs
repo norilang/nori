@@ -49,6 +49,14 @@ namespace Nori.Compiler
             ["VariableChange"] = "_onDeserialization",
             ["PreSerialization"] = "_onPreSerialization",
             ["PostSerialization"] = "_onPostSerialization",
+            ["InputJump"] = "_inputJump",
+            ["InputUse"] = "_inputUse",
+            ["InputGrab"] = "_inputGrab",
+            ["InputDrop"] = "_inputDrop",
+            ["InputMoveHorizontal"] = "_inputMoveHorizontal",
+            ["InputMoveVertical"] = "_inputMoveVertical",
+            ["InputLookHorizontal"] = "_inputLookHorizontal",
+            ["InputLookVertical"] = "_inputLookVertical",
         };
 
         public SemanticAnalyzer(ModuleDecl module, IExternCatalog catalog, DiagnosticBag diagnostics)

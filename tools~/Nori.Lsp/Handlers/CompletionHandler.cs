@@ -36,6 +36,14 @@ namespace Nori.Lsp.Handlers
             ["PostSerialization"] = "PostSerialization(result: SerializationResult)",
             ["Enable"] = "Fires when the object is enabled",
             ["Disable"] = "Fires when the object is disabled",
+            ["InputJump"] = "InputJump(value: bool) — Jump button pressed/released",
+            ["InputUse"] = "InputUse(value: bool) — Use button pressed/released",
+            ["InputGrab"] = "InputGrab(value: bool) — Grab button pressed/released",
+            ["InputDrop"] = "InputDrop(value: bool) — Drop button pressed/released",
+            ["InputMoveHorizontal"] = "InputMoveHorizontal(value: float) — Horizontal movement axis",
+            ["InputMoveVertical"] = "InputMoveVertical(value: float) — Vertical movement axis",
+            ["InputLookHorizontal"] = "InputLookHorizontal(value: float) — Horizontal look axis",
+            ["InputLookVertical"] = "InputLookVertical(value: float) — Vertical look axis",
         };
 
         private static readonly string[] SyncModes = { "none", "linear", "smooth" };

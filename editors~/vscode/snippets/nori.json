@@ -2,7 +2,7 @@
   "Event Handler": {
     "prefix": "on",
     "body": [
-      "on ${1|Start,Update,Interact,PlayerJoined,PlayerLeft|} {",
+      "on ${1|Start,Update,Interact,PlayerJoined,PlayerLeft,InputJump,InputUse,InputGrab,InputDrop|} {",
       "\t$0",
       "}"
     ],

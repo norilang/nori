@@ -201,6 +201,23 @@ namespace Nori.Compiler
 
         // --- Event handlers ---
 
+        // VRC's runtime uses fixed internal parameter names for input events,
+        // not the user-written parameter names. Button events use "boolValue",
+        // axis events use "floatValue". The mangled heap var name is constructed
+        // from these (e.g., _inputJump + boolValue → inputJumpBoolValue).
+        private static readonly Dictionary<string, string[]> InputEventRuntimeParams
+            = new Dictionary<string, string[]>
+        {
+            ["_inputJump"] = new[] { "boolValue" },
+            ["_inputUse"] = new[] { "boolValue" },
+            ["_inputGrab"] = new[] { "boolValue" },
+            ["_inputDrop"] = new[] { "boolValue" },
+            ["_inputMoveHorizontal"] = new[] { "floatValue" },
+            ["_inputMoveVertical"] = new[] { "floatValue" },
+            ["_inputLookHorizontal"] = new[] { "floatValue" },
+            ["_inputLookVertical"] = new[] { "floatValue" },
+        };
+
         private void LowerEventHandler(EventHandlerDecl handler)
         {
             string label = SemanticAnalyzer.GetUdonEventName(handler.EventName);
@@ -211,10 +228,21 @@ namespace Nori.Compiler
             // Declare parameter variables (event parameters are heap vars)
             // Udon runtime mangles event param names: _onPlayerJoined + player → onPlayerJoinedPlayer
             // We must declare the mangled name (runtime writes to it) and copy to the original name.
-            foreach (var param in handler.Parameters)
+            // For input events, VRC uses fixed internal names (boolValue/floatValue) regardless
+            // of what the user names the parameter in source.
+            InputEventRuntimeParams.TryGetValue(label, out var runtimeParamNames);
+
+            for (int i = 0; i < handler.Parameters.Count; i++)
             {
+                var param = handler.Parameters[i];
                 string paramType = TypeSystem.ResolveType(param.TypeName) ?? "SystemObject";
-                string mangledName = $"{label.Substring(1)}{char.ToUpper(param.Name[0])}{param.Name.Substring(1)}";
+
+                // Use VRC's runtime parameter name if this is an input event
+                string runtimeName = (runtimeParamNames != null && i < runtimeParamNames.Length)
+                    ? runtimeParamNames[i]
+                    : param.Name;
+                string mangledName = $"{label.Substring(1)}{char.ToUpper(runtimeName[0])}{runtimeName.Substring(1)}";
+
                 DeclareHeapVar(mangledName, paramType);
                 string localVar = DeclareHeapVar(param.Name, paramType);
                 _varNameMap[param.Name] = localVar;

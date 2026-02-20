@@ -103,6 +103,59 @@ on Update {
         transform.localRotation = Quaternion.Euler(0.0, current_angle, 0.0)
     }
 }";
+                case "world_settings.nori":
+                    return @"pub let walk_speed: float = 2.0
+pub let run_speed: float = 4.0
+pub let strafe_speed: float = 2.0
+pub let jump_impulse: float = 3.0
+pub let gravity_strength: float = 1.0
+pub let allow_double_jump: bool = false
+pub let allow_triple_jump: bool = false
+let max_jumps: int = 1
+let jump_count: int = 0
+let is_grounded: bool = true
+
+on Start {
+    let localPlayer: Player = Networking.LocalPlayer
+    localPlayer.SetWalkSpeed(walk_speed)
+    localPlayer.SetRunSpeed(run_speed)
+    localPlayer.SetStrafeSpeed(strafe_speed)
+    localPlayer.SetJumpImpulse(jump_impulse)
+    localPlayer.SetGravityStrength(gravity_strength)
+    max_jumps = 1
+    if allow_double_jump {
+        max_jumps = 2
+    }
+    if allow_triple_jump {
+        max_jumps = 3
+    }
+}
+
+on Update {
+    let localPlayer: Player = Networking.LocalPlayer
+    let grounded: bool = localPlayer.IsPlayerGrounded()
+    if grounded && !is_grounded {
+        jump_count = 0
+    }
+    is_grounded = grounded
+}
+
+on InputJump(value: bool) {
+    if !value {
+        return
+    }
+    if is_grounded {
+        jump_count = 1
+        return
+    }
+    if jump_count < max_jumps {
+        jump_count = jump_count + 1
+        let localPlayer: Player = Networking.LocalPlayer
+        let vel: Vector3 = localPlayer.GetVelocity()
+        let horizontal: Vector3 = vel - Vector3.up * vel.y
+        localPlayer.SetVelocity(horizontal + Vector3.up * jump_impulse)
+    }
+}";
                 default:
                     Assert.Fail($"Sample not found: {name}");
                     return "";
@@ -255,6 +308,46 @@ on Start {
             Assert.AreEqual("test.nori", error.Span.File);
             Assert.Greater(error.Span.Start.Line, 0);
             Assert.Greater(error.Span.Start.Column, 0);
+        }
+
+        [Test]
+        public void WorldSettings_Compiles_Without_Errors()
+        {
+            var source = LoadSample("world_settings.nori");
+            var result = NoriCompiler.Compile(source, "world_settings.nori");
+            Assert.IsTrue(result.Success, FormatErrors(result));
+        }
+
+        [Test]
+        public void WorldSettings_Has_Expected_Exports()
+        {
+            var source = LoadSample("world_settings.nori");
+            var result = NoriCompiler.Compile(source, "world_settings.nori");
+            Assert.IsTrue(result.Success, FormatErrors(result));
+
+            Assert.That(result.Uasm, Does.Contain(".export walk_speed"));
+            Assert.That(result.Uasm, Does.Contain(".export allow_double_jump"));
+            Assert.That(result.Uasm, Does.Contain(".export _start"));
+            Assert.That(result.Uasm, Does.Contain(".export _update"));
+            Assert.That(result.Uasm, Does.Contain(".export _inputJump"));
+        }
+
+        [Test]
+        public void InputJump_EventName_Maps_Correctly()
+        {
+            var source = @"on InputJump(value: bool) {
+    log(""jump"")
+}";
+            var result = NoriCompiler.Compile(source, "test.nori");
+            Assert.IsTrue(result.Success, FormatErrors(result));
+
+            Assert.That(result.Uasm, Does.Contain("_inputJump:"));
+            Assert.That(result.Uasm, Does.Not.Contain("_InputJump:"));
+
+            // VRC runtime uses "boolValue" as the internal param name for button events,
+            // so the mangled heap var must be inputJumpBoolValue (not inputJumpValue)
+            Assert.That(result.Uasm, Does.Contain("inputJumpBoolValue"));
+            Assert.That(result.Uasm, Does.Not.Contain("inputJumpValue:"));
         }
 
         [Test]

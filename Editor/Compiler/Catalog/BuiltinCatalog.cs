@@ -304,6 +304,32 @@ namespace Nori.Compiler
 
             AddProperty("VRCSDKBaseVRCPlayerApi", "isMaster", "SystemBoolean",
                 "VRCSDKBaseVRCPlayerApi.__get_isMaster__SystemBoolean");
+
+            // Player movement methods
+            AddMethod("VRCSDKBaseVRCPlayerApi", "SetJumpImpulse", new ExternSignature(
+                "VRCSDKBaseVRCPlayerApi.__SetJumpImpulse__SystemSingle__SystemVoid",
+                new[] { "SystemSingle" }, "SystemVoid", true));
+            AddMethod("VRCSDKBaseVRCPlayerApi", "SetWalkSpeed", new ExternSignature(
+                "VRCSDKBaseVRCPlayerApi.__SetWalkSpeed__SystemSingle__SystemVoid",
+                new[] { "SystemSingle" }, "SystemVoid", true));
+            AddMethod("VRCSDKBaseVRCPlayerApi", "SetRunSpeed", new ExternSignature(
+                "VRCSDKBaseVRCPlayerApi.__SetRunSpeed__SystemSingle__SystemVoid",
+                new[] { "SystemSingle" }, "SystemVoid", true));
+            AddMethod("VRCSDKBaseVRCPlayerApi", "SetStrafeSpeed", new ExternSignature(
+                "VRCSDKBaseVRCPlayerApi.__SetStrafeSpeed__SystemSingle__SystemVoid",
+                new[] { "SystemSingle" }, "SystemVoid", true));
+            AddMethod("VRCSDKBaseVRCPlayerApi", "SetGravityStrength", new ExternSignature(
+                "VRCSDKBaseVRCPlayerApi.__SetGravityStrength__SystemSingle__SystemVoid",
+                new[] { "SystemSingle" }, "SystemVoid", true));
+            AddMethod("VRCSDKBaseVRCPlayerApi", "IsPlayerGrounded", new ExternSignature(
+                "VRCSDKBaseVRCPlayerApi.__IsPlayerGrounded__SystemBoolean",
+                new string[0], "SystemBoolean", true));
+            AddMethod("VRCSDKBaseVRCPlayerApi", "GetVelocity", new ExternSignature(
+                "VRCSDKBaseVRCPlayerApi.__GetVelocity__UnityEngineVector3",
+                new string[0], "UnityEngineVector3", true));
+            AddMethod("VRCSDKBaseVRCPlayerApi", "SetVelocity", new ExternSignature(
+                "VRCSDKBaseVRCPlayerApi.__SetVelocity__UnityEngineVector3__SystemVoid",
+                new[] { "UnityEngineVector3" }, "SystemVoid", true));
         }
 
         private void RegisterUdonBehaviourMethods()

@@ -121,18 +121,11 @@ namespace Nori.Compiler
             sb.AppendLine(".code_start");
             sb.AppendLine();
 
-            // Emit code exports
+            // Emit blocks (with .export immediately before each exported label)
             foreach (var block in _ir.Blocks)
             {
                 if (block.IsExport)
                     sb.AppendLine($"    .export {block.Label}");
-            }
-
-            sb.AppendLine();
-
-            // Emit blocks
-            foreach (var block in _ir.Blocks)
-            {
                 sb.AppendLine($"    {block.Label}:");
 
                 foreach (var instr in block.Instructions)
