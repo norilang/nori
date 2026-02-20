@@ -44,6 +44,11 @@ namespace Nori.Compiler
         private readonly List<(string varName, Expr initializer)> _deferredExprInits
             = new List<(string, Expr)>();
 
+        // Maps source-level variable names to their current heap variable names.
+        // Handles cases where DeclareHeapVar renames a variable to avoid collisions.
+        private readonly Dictionary<string, string> _varNameMap
+            = new Dictionary<string, string>();
+
         public IrLowering(ModuleDecl module, DiagnosticBag diagnostics,
             IExternCatalog catalog = null)
         {
@@ -211,8 +216,9 @@ namespace Nori.Compiler
                 string paramType = TypeSystem.ResolveType(param.TypeName) ?? "SystemObject";
                 string mangledName = $"{label.Substring(1)}{char.ToUpper(param.Name[0])}{param.Name.Substring(1)}";
                 DeclareHeapVar(mangledName, paramType);
-                DeclareHeapVar(param.Name, paramType);
-                Emit(new IrCopy(mangledName, param.Name));
+                string localVar = DeclareHeapVar(param.Name, paramType);
+                _varNameMap[param.Name] = localVar;
+                Emit(new IrCopy(mangledName, localVar));
             }
 
             LowerBlock(handler.Body);
@@ -267,14 +273,26 @@ namespace Nori.Compiler
                 ? TypeSystem.ResolveType(func.ReturnTypeName) : null;
 
             // Copy param slots to local names
+            var prevParamMappings = new Dictionary<string, string>();
             foreach (var param in func.Parameters)
             {
                 string paramType = TypeSystem.ResolveType(param.TypeName) ?? "SystemObject";
                 string localVar = DeclareHeapVar(param.Name, paramType);
                 Emit(new IrCopy($"__param_{func.Name}_{param.Name}", localVar));
+
+                _varNameMap.TryGetValue(param.Name, out var prev);
+                prevParamMappings[param.Name] = prev;
+                _varNameMap[param.Name] = localVar;
             }
 
             LowerBlock(func.Body);
+
+            // Restore parameter mappings
+            foreach (var kvp in prevParamMappings)
+            {
+                if (kvp.Value != null) _varNameMap[kvp.Key] = kvp.Value;
+                else _varNameMap.Remove(kvp.Key);
+            }
 
             // End with indirect jump to return address
             Emit(new IrJumpIndirect(retAddrVar));
@@ -339,6 +357,7 @@ namespace Nori.Compiler
                 ?? "SystemObject";
             string initVal = GetInitialValue(lv.Initializer, udonType);
             string varName = DeclareHeapVar(lv.Name, udonType, initVal);
+            _varNameMap[lv.Name] = varName;
 
             if (lv.Initializer != null)
             {
@@ -491,6 +510,11 @@ namespace Nori.Compiler
         private void LowerForRange(ForRangeStmt forRange)
         {
             string iterVar = DeclareHeapVar(forRange.VarName, "SystemInt32");
+
+            // Save previous mapping and register loop variable
+            _varNameMap.TryGetValue(forRange.VarName, out var prevForMapping);
+            _varNameMap[forRange.VarName] = iterVar;
+
             string startVar = LowerExpr(forRange.Start);
             Emit(new IrCopy(startVar, iterVar));
 
@@ -526,6 +550,12 @@ namespace Nori.Compiler
 
             Emit(new IrJump(condLabel));
             StartContinuationBlock(endLabel);
+
+            // Restore previous mapping
+            if (prevForMapping != null)
+                _varNameMap[forRange.VarName] = prevForMapping;
+            else
+                _varNameMap.Remove(forRange.VarName);
         }
 
         private void LowerForEach(ForEachStmt forEach)
@@ -550,6 +580,10 @@ namespace Nori.Compiler
             string incrLabel = NewLabel("foreach_incr");
             string endLabel = NewLabel("foreach_end");
             string elemVar = DeclareHeapVar(forEach.VarName, elemType);
+
+            // Save previous mapping and register loop variable
+            _varNameMap.TryGetValue(forEach.VarName, out var prevForEachMapping);
+            _varNameMap[forEach.VarName] = elemVar;
 
             Emit(new IrJump(condLabel));
             StartContinuationBlock(condLabel);
@@ -586,6 +620,12 @@ namespace Nori.Compiler
 
             Emit(new IrJump(condLabel));
             StartContinuationBlock(endLabel);
+
+            // Restore previous mapping
+            if (prevForEachMapping != null)
+                _varNameMap[forEach.VarName] = prevForEachMapping;
+            else
+                _varNameMap.Remove(forEach.VarName);
         }
 
         private void LowerReturn(ReturnStmt ret)
@@ -781,7 +821,11 @@ namespace Nori.Compiler
                     return AllocTemp(name.ResolvedSymbol.UdonType);
             }
 
-            // Regular variable - ensure it exists as a heap var
+            // Regular variable - check name map for remapped heap var names
+            if (_varNameMap.TryGetValue(name.Name, out var mappedName))
+                return mappedName;
+
+            // Ensure it exists as a heap var
             if (_ir.FindVar(name.Name) == null)
                 DeclareHeapVar(name.Name, name.ResolvedSymbol.UdonType);
 

@@ -100,6 +100,7 @@ on Update {
                 current_angle = target_angle
             }
         }
+        transform.localRotation = Quaternion.Euler(0.0, current_angle, 0.0)
     }
 }";
                 default:
@@ -254,6 +255,50 @@ on Start {
             Assert.AreEqual("test.nori", error.Span.File);
             Assert.Greater(error.Span.Start.Line, 0);
             Assert.Greater(error.Span.Start.Column, 0);
+        }
+
+        [Test]
+        public void ForRange_Duplicate_VarName_Uses_Correct_HeapVar()
+        {
+            // Two for-range loops in separate scopes using the same variable name "i".
+            // The second loop's body must reference its own heap var, not the first loop's.
+            var source = @"
+pub let items: int = 3
+let total: int = 0
+
+on Start {
+    for i in 0..items {
+        total = total + 1
+    }
+}
+
+fn add_items() {
+    for i in 0..items {
+        total = total + i
+    }
+}
+";
+            var result = NoriCompiler.Compile(source, "test.nori");
+            Assert.IsTrue(result.Success, FormatErrors(result));
+
+            string uasm = result.Uasm;
+            string dataSection = ExtractSection(uasm, ".data_start", ".data_end");
+
+            // There should be a renamed heap var for the second "i" (collision)
+            Assert.That(dataSection, Does.Contain("__lcl_i_SystemInt32_"),
+                "Second loop variable 'i' should be renamed to avoid collision");
+
+            // The function body should reference the renamed variable, not the original "i"
+            string codeSection = ExtractSection(uasm, ".code_start", ".code_end");
+            // Find the function block and verify it uses the renamed var
+            int fnStart = codeSection.IndexOf("__fn_add_items:");
+            Assert.Greater(fnStart, 0, "Function block should exist");
+            string fnCode = codeSection.Substring(fnStart);
+
+            // The function's loop body should PUSH the renamed __lcl_i variable,
+            // not the original "i" (which belongs to the Start handler's loop)
+            Assert.That(fnCode, Does.Contain("__lcl_i_SystemInt32_"),
+                "Function loop body should use the renamed loop variable");
         }
 
         private string ExtractSection(string uasm, string startMarker, string endMarker)
