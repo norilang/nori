@@ -1,0 +1,11 @@
+fileFormatVersion: 2
+guid: f5bace2a6b983194ca7054454e80d8a6
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"max_score","TypeName":"int","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":""}],"SyncVars":[{"Name":"score","TypeName":"int","IsArray":false,"DefaultValue":"","SyncMode":"none","DocComment":""}],"Events":["Start","Interact"],"CustomEvents":["AddPoint","GameOver"],"Functions":["update_display"],"ErrorCount":0,"WarningCount":0,"Diagnostics":[]}'

@@ -8,17 +8,19 @@ namespace Nori.Tests
     [TestFixture]
     public class IntegrationTests
     {
-        private static readonly string SamplesPath = Path.GetFullPath(
+        private static readonly string PackagePath = Path.GetFullPath(
             Path.Combine(TestContext.CurrentContext.TestDirectory,
-            "..", "..", "..", "..", "Packages", "dev.nori.compiler", "Samples~"));
+            "..", "..", "..", "..", "Packages", "dev.nori.compiler"));
 
         private string LoadSample(string name)
         {
-            // Try multiple possible paths
+            // Try multiple possible paths (Samples/ folder with scene subfolder)
             string[] paths = new[]
             {
-                Path.Combine(SamplesPath, name),
-                Path.Combine("Packages", "dev.nori.compiler", "Samples~", name),
+                Path.Combine(PackagePath, "Samples", name),
+                Path.Combine(PackagePath, "Samples", "basic scene", "NoriProgramSources", name),
+                Path.Combine("Packages", "dev.nori.compiler", "Samples", name),
+                Path.Combine("Packages", "dev.nori.compiler", "Samples", "basic scene", "NoriProgramSources", name),
             };
 
             foreach (var path in paths)

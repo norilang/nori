@@ -1,0 +1,11 @@
+fileFormatVersion: 2
+guid: c05b26017d3e7204bae4cc8b93c2f69a
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"walk_speed","TypeName":"float","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":""},{"Name":"run_speed","TypeName":"float","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":""},{"Name":"strafe_speed","TypeName":"float","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":""},{"Name":"jump_impulse","TypeName":"float","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":""},{"Name":"gravity_strength","TypeName":"float","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":""},{"Name":"allow_double_jump","TypeName":"bool","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":""},{"Name":"allow_triple_jump","TypeName":"bool","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":""}],"SyncVars":[],"Events":["Start","Update","InputJump"],"CustomEvents":[],"Functions":[],"ErrorCount":0,"WarningCount":0,"Diagnostics":[]}'

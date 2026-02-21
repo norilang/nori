@@ -1,0 +1,11 @@
+fileFormatVersion: 2
+guid: 2f04ab25874b1c240866a2b06f18b4f6
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"lights","TypeName":"GameObject","IsArray":true,"DefaultValue":"","SyncMode":"","DocComment":""}],"SyncVars":[],"Events":["Start","Interact"],"CustomEvents":[],"Functions":["activate_light","count_active"],"ErrorCount":0,"WarningCount":0,"Diagnostics":[]}'

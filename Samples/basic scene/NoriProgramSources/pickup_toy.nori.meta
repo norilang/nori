@@ -1,0 +1,11 @@
+fileFormatVersion: 2
+guid: 597ef97c5a86a4d449701fd324fbf661
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[],"SyncVars":[],"Events":["Start","Pickup","Drop","PickupUseDown","TriggerEnter","TriggerExit","Update"],"CustomEvents":[],"Functions":[],"ErrorCount":0,"WarningCount":0,"Diagnostics":[]}'

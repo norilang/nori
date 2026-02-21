@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.1.3] - 2026-02-20
+
+### Fixed
+- Input event parameter naming: VRC runtime uses fixed internal names (`boolValue`/`floatValue`), not user-written parameter names — `inputJumpBoolValue` instead of `inputJumpValue`
+- `.export` directive placement in UdonEmitter: now emitted immediately before each label instead of grouped at top of code section
+- Integration test sample paths updated for new `Samples/` folder structure
+
+### Added
+- `world_settings.nori` sample: configures player movement speeds and optional double/triple jump via Inspector toggles
+- 8 VRChat input events in compiler EventNameMap: InputJump, InputUse, InputGrab, InputDrop, InputMoveHorizontal/Vertical, InputLookHorizontal/Vertical
+- 8 player movement methods in BuiltinCatalog: SetWalkSpeed, SetRunSpeed, SetStrafeSpeed, SetJumpImpulse, SetGravityStrength, IsPlayerGrounded, GetVelocity, SetVelocity
+- Input events in LSP completion with parameter info
+- Input events in VS Code snippet choices
+- Integration tests for WorldSettings compilation, exports, and InputJump parameter naming
+- Basic sample scene with all Nori program sources
+
+### Changed
+- Samples moved from `Samples~/` (Unity-hidden) to `Samples/` so users can browse them in the Project window
+
 ## [0.1.2] - 2026-02-20
 
 ### Fixed

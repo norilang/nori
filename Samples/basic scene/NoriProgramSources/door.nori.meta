@@ -1,0 +1,11 @@
+fileFormatVersion: 2
+guid: 66f923fc7ff86f54d8699e3cec246f28
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"speed","TypeName":"float","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":""}],"SyncVars":[],"Events":["Interact","Update"],"CustomEvents":[],"Functions":[],"ErrorCount":0,"WarningCount":0,"Diagnostics":[]}'

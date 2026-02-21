@@ -1,0 +1,11 @@
+fileFormatVersion: 2
+guid: 98c0dc67c810f3f45874800b14e1ca49
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"speed","TypeName":"float","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":""},{"Name":"max_speed","TypeName":"float","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":""}],"SyncVars":[],"Events":["Enable","Disable","Update"],"CustomEvents":[],"Functions":[],"ErrorCount":0,"WarningCount":0,"Diagnostics":[]}'

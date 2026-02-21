@@ -1,0 +1,11 @@
+fileFormatVersion: 2
+guid: d9a32862ac238324dbc1f4e2ecb3b22e
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[],"SyncVars":[],"Events":["Start","PlayerJoined","PlayerLeft","Interact"],"CustomEvents":[],"Functions":["countdown"],"ErrorCount":0,"WarningCount":0,"Diagnostics":[]}'

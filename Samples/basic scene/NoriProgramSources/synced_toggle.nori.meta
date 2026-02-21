@@ -1,0 +1,12 @@
+fileFormatVersion: 2
+guid: b8135d8b9f73a764c9a2caf19462e277
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"target","TypeName":"GameObject","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"The
+    object to toggle on and off"}],"SyncVars":[{"Name":"is_on","TypeName":"bool","IsArray":false,"DefaultValue":"","SyncMode":"none","DocComment":""},{"Name":"brightness","TypeName":"float","IsArray":false,"DefaultValue":"","SyncMode":"linear","DocComment":""},{"Name":"smooth_value","TypeName":"float","IsArray":false,"DefaultValue":"","SyncMode":"smooth","DocComment":""}],"Events":["Start","Interact","VariableChange","PreSerialization"],"CustomEvents":[],"Functions":["do_toggle"],"ErrorCount":0,"WarningCount":0,"Diagnostics":[]}'

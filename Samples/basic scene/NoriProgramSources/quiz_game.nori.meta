@@ -1,0 +1,11 @@
+fileFormatVersion: 2
+guid: 7f9160459f63aca47a9b6ee39923f655
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"time_limit","TypeName":"float","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":""},{"Name":"questions","TypeName":"string","IsArray":true,"DefaultValue":"","SyncMode":"","DocComment":""},{"Name":"answers","TypeName":"string","IsArray":true,"DefaultValue":"","SyncMode":"","DocComment":""}],"SyncVars":[],"Events":["Start","Interact","Update"],"CustomEvents":[],"Functions":["start_round","show_question","check_answer","calculate_score","end_game","advance_question"],"ErrorCount":0,"WarningCount":0,"Diagnostics":[]}'

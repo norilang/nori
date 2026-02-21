@@ -1,0 +1,11 @@
+fileFormatVersion: 2
+guid: a89f3f8943999d04783d2f40a23a4447
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"target","TypeName":"GameObject","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":""},{"Name":"follow_speed","TypeName":"float","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":""},{"Name":"stop_distance","TypeName":"float","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":""},{"Name":"max_distance","TypeName":"float","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":""}],"SyncVars":[],"Events":["Start","Update"],"CustomEvents":[],"Functions":[],"ErrorCount":0,"WarningCount":0,"Diagnostics":[]}'
