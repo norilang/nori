@@ -1,0 +1,25 @@
+fileFormatVersion: 2
+guid: 4dcc51cf560735747acf93685f43871b
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"text_field","TypeName":"UI.Text","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"UI
+    Text element to display collision info"},{"Name":"rigidbody","TypeName":"Rigidbody","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Rigidbody
+    of the projectile"},{"Name":"force","TypeName":"ConstantForce","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"ConstantForce
+    component for propulsion"}],"SyncVars":[],"Events":["Start","PlayerCollisionEnter","PlayerCollisionExit"],"CustomEvents":["Fire"],"Functions":[],"ErrorCount":5,"WarningCount":0,"Diagnostics":[{"Severity":"error","Code":"E0040","Message":"Unknown
+    type ''UI.Text''","Line":18,"Column":5,"Hint":""},{"Severity":"error","Code":"E0070","Message":"Undefined
+    variable ''PickupHand''","Line":39,"Column":34,"Hint":""},{"Severity":"error","Code":"E0130","Message":"No
+    matching overload for VRCPlayerApi.PlayHapticEventInHand with arguments (object,
+    float, float, float)","Line":39,"Column":5,"Hint":"Available overloads:\n  (hand:
+    VRCSDKBaseVRC_PickupPickupHand, duration: float, amplitude: float, frequency:
+    float) -> void"},{"Severity":"error","Code":"E0070","Message":"Undefined variable
+    ''PickupHand''","Line":40,"Column":34,"Hint":""},{"Severity":"error","Code":"E0130","Message":"No
+    matching overload for VRCPlayerApi.PlayHapticEventInHand with arguments (object,
+    float, float, float)","Line":40,"Column":5,"Hint":"Available overloads:\n  (hand:
+    VRCSDKBaseVRC_PickupPickupHand, duration: float, amplitude: float, frequency:
+    float) -> void"}]}'

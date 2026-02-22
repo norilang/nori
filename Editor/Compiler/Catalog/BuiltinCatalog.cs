@@ -29,6 +29,10 @@ namespace Nori.Compiler
 
         private readonly HashSet<string> _knownTypes = new HashSet<string>();
 
+        // Enums: udonType -> EnumTypeInfo
+        private readonly Dictionary<string, EnumTypeInfo> _enums
+            = new Dictionary<string, EnumTypeInfo>();
+
         private BuiltinCatalog()
         {
             RegisterArithmeticOperators();
@@ -43,9 +47,31 @@ namespace Nori.Compiler
             RegisterNetworkingOperations();
             RegisterPlayerProperties();
             RegisterUdonBehaviourMethods();
+            RegisterVector2Operations();
             RegisterVector3Operations();
             RegisterQuaternionOperations();
             RegisterMathfMethods();
+            RegisterColorOperations();
+            RegisterRandomOperations();
+            RegisterInputMethods();
+            RegisterMaterialProperties();
+            RegisterRendererProperties();
+            RegisterRigidbodyProperties();
+            RegisterConstantForceProperties();
+            RegisterLineRendererOperations();
+            RegisterComponentProperties();
+            RegisterVRCObjectPoolMethods();
+            RegisterVRCObjectSyncMethods();
+            RegisterVRCAvatarPedestalMethods();
+            RegisterVRCPickupProperties();
+            RegisterVRCVideoPlayerMethods();
+            RegisterVRCUrlInputFieldMethods();
+            RegisterVRCStringDownloaderMethods();
+            RegisterVRCImageDownloaderMethods();
+            RegisterVRCDownloadInterfaces();
+            RegisterUIProperties();
+            RegisterUtilitiesMethods();
+            RegisterEnums();
         }
 
         private void AddProperty(string owner, string name, string type,
@@ -203,7 +229,10 @@ namespace Nori.Compiler
         private void RegisterArrayOperations()
         {
             foreach (var elemType in new[] { "SystemInt32", "SystemSingle", "SystemString",
-                "SystemBoolean", "SystemObject", "UnityEngineGameObject", "VRCSDKBaseVRCPlayerApi" })
+                "SystemBoolean", "SystemObject", "UnityEngineGameObject", "VRCSDKBaseVRCPlayerApi",
+                "UnityEngineVector3", "UnityEngineColor", "UnityEngineQuaternion",
+                "UnityEngineMaterial", "UnityEngineLineRenderer", "UnityEngineComponent",
+                "VRCSDKBaseVRCUrl" })
             {
                 var arrayType = elemType + "Array";
                 _knownTypes.Add(arrayType);
@@ -248,6 +277,11 @@ namespace Nori.Compiler
             AddMethod("UnityEngineTransform", "Rotate", new ExternSignature(
                 "UnityEngineTransform.__Rotate__UnityEngineVector3__SystemVoid",
                 new[] { "UnityEngineVector3" }, "SystemVoid", true));
+
+            // Transform inherits from Component — GetComponentsInChildren
+            AddMethod("UnityEngineTransform", "GetComponentsInChildren", new ExternSignature(
+                "UnityEngineComponent.__GetComponentsInChildren__SystemType__UnityEngineComponentArray",
+                new[] { "SystemType" }, "UnityEngineComponentArray", true));
         }
 
         private void RegisterGameObjectOperations()
@@ -263,6 +297,19 @@ namespace Nori.Compiler
 
             AddProperty("UnityEngineGameObject", "transform", "UnityEngineTransform",
                 "UnityEngineGameObject.__get_transform__UnityEngineTransform");
+
+            AddProperty("UnityEngineGameObject", "name", "SystemString",
+                "UnityEngineObject.__get_name__SystemString");
+
+            // GetComponent(SystemType) → UnityEngineComponent
+            AddMethod("UnityEngineGameObject", "GetComponent", new ExternSignature(
+                "UnityEngineGameObject.__GetComponent__SystemType__UnityEngineComponent",
+                new[] { "SystemType" }, "UnityEngineComponent", true));
+
+            // GetComponentsInChildren(SystemType) → UnityEngineComponentArray
+            AddMethod("UnityEngineGameObject", "GetComponentsInChildren", new ExternSignature(
+                "UnityEngineComponent.__GetComponentsInChildren__SystemType__UnityEngineComponentArray",
+                new[] { "SystemType" }, "UnityEngineComponentArray", true));
         }
 
         private void RegisterTimeProperties()
@@ -274,6 +321,9 @@ namespace Nori.Compiler
 
             AddStaticProperty("UnityEngineTime", "time", "SystemSingle",
                 "UnityEngineTime.__get_time__SystemSingle");
+
+            AddStaticProperty("UnityEngineTime", "realtimeSinceStartup", "SystemSingle",
+                "UnityEngineTime.__get_realtimeSinceStartup__SystemSingle");
         }
 
         private void RegisterNetworkingOperations()
@@ -290,6 +340,18 @@ namespace Nori.Compiler
             AddStaticMethod("VRCSDKBaseNetworking", "SetOwner", new ExternSignature(
                 "VRCSDKBaseNetworking.__SetOwner__VRCSDKBaseVRCPlayerApi_UnityEngineGameObject__SystemVoid",
                 new[] { "VRCSDKBaseVRCPlayerApi", "UnityEngineGameObject" }, "SystemVoid", false));
+
+            AddStaticMethod("VRCSDKBaseNetworking", "GetServerTimeInSeconds", new ExternSignature(
+                "VRCSDKBaseNetworking.__GetServerTimeInSeconds__SystemDouble",
+                new string[0], "SystemDouble", false));
+
+            // IsOwner 1-arg overload (checks local player implicitly)
+            AddStaticMethod("VRCSDKBaseNetworking", "IsOwner", new ExternSignature(
+                "VRCSDKBaseNetworking.__IsOwner__UnityEngineGameObject__SystemBoolean",
+                new[] { "UnityEngineGameObject" }, "SystemBoolean", false));
+
+            AddStaticProperty("VRCSDKBaseNetworking", "IsMaster", "SystemBoolean",
+                "VRCSDKBaseNetworking.__get_IsMaster__SystemBoolean");
         }
 
         private void RegisterPlayerProperties()
@@ -330,11 +392,68 @@ namespace Nori.Compiler
             AddMethod("VRCSDKBaseVRCPlayerApi", "SetVelocity", new ExternSignature(
                 "VRCSDKBaseVRCPlayerApi.__SetVelocity__UnityEngineVector3__SystemVoid",
                 new[] { "UnityEngineVector3" }, "SystemVoid", true));
+
+            // Tracking data
+            AddMethod("VRCSDKBaseVRCPlayerApi", "GetTrackingData", new ExternSignature(
+                "VRCSDKBaseVRCPlayerApi.__GetTrackingData__VRCSDKBaseVRCPlayerApiTrackingDataType__VRCSDKBaseVRCPlayerApiTrackingData",
+                new[] { "VRCSDKBaseVRCPlayerApiTrackingDataType" }, "VRCSDKBaseVRCPlayerApiTrackingData", true));
+
+            // TrackingData properties
+            _knownTypes.Add("VRCSDKBaseVRCPlayerApiTrackingData");
+            AddProperty("VRCSDKBaseVRCPlayerApiTrackingData", "position", "UnityEngineVector3",
+                "VRCSDKBaseVRCPlayerApiTrackingData.__get_position__UnityEngineVector3");
+            AddProperty("VRCSDKBaseVRCPlayerApiTrackingData", "rotation", "UnityEngineQuaternion",
+                "VRCSDKBaseVRCPlayerApiTrackingData.__get_rotation__UnityEngineQuaternion");
+
+            // Haptic feedback
+            AddMethod("VRCSDKBaseVRCPlayerApi", "PlayHapticEventInHand", new ExternSignature(
+                "VRCSDKBaseVRCPlayerApi.__PlayHapticEventInHand__VRCSDKBaseVRC_PickupPickupHand_SystemSingle_SystemSingle_SystemSingle__SystemVoid",
+                new[] { "VRCSDKBaseVRC_PickupPickupHand", "SystemSingle", "SystemSingle", "SystemSingle" },
+                "SystemVoid", true));
+
+            // Audio settings
+            AddMethod("VRCSDKBaseVRCPlayerApi", "SetVoiceDistanceFar", new ExternSignature(
+                "VRCSDKBaseVRCPlayerApi.__SetVoiceDistanceFar__SystemSingle__SystemVoid",
+                new[] { "SystemSingle" }, "SystemVoid", true));
+            AddMethod("VRCSDKBaseVRCPlayerApi", "SetAvatarAudioFarRadius", new ExternSignature(
+                "VRCSDKBaseVRCPlayerApi.__SetAvatarAudioFarRadius__SystemSingle__SystemVoid",
+                new[] { "SystemSingle" }, "SystemVoid", true));
+
+            // Station
+            AddMethod("VRCSDKBaseVRCPlayerApi", "UseAttachedStation", new ExternSignature(
+                "VRCSDKBaseVRCPlayerApi.__UseAttachedStation__SystemVoid",
+                new string[0], "SystemVoid", true));
+
+            // Avatar scaling
+            AddMethod("VRCSDKBaseVRCPlayerApi", "SetManualAvatarScalingAllowed", new ExternSignature(
+                "VRCSDKBaseVRCPlayerApi.__SetManualAvatarScalingAllowed__SystemBoolean__SystemVoid",
+                new[] { "SystemBoolean" }, "SystemVoid", true));
+            AddMethod("VRCSDKBaseVRCPlayerApi", "SetAvatarEyeHeightMinimumByMeters", new ExternSignature(
+                "VRCSDKBaseVRCPlayerApi.__SetAvatarEyeHeightMinimumByMeters__SystemSingle__SystemVoid",
+                new[] { "SystemSingle" }, "SystemVoid", true));
+            AddMethod("VRCSDKBaseVRCPlayerApi", "SetAvatarEyeHeightMaximumByMeters", new ExternSignature(
+                "VRCSDKBaseVRCPlayerApi.__SetAvatarEyeHeightMaximumByMeters__SystemSingle__SystemVoid",
+                new[] { "SystemSingle" }, "SystemVoid", true));
+            AddMethod("VRCSDKBaseVRCPlayerApi", "GetAvatarEyeHeightAsMeters", new ExternSignature(
+                "VRCSDKBaseVRCPlayerApi.__GetAvatarEyeHeightAsMeters__SystemSingle",
+                new string[0], "SystemSingle", true));
+            AddMethod("VRCSDKBaseVRCPlayerApi", "SetAvatarEyeHeightByMeters", new ExternSignature(
+                "VRCSDKBaseVRCPlayerApi.__SetAvatarEyeHeightByMeters__SystemSingle__SystemVoid",
+                new[] { "SystemSingle" }, "SystemVoid", true));
+
+            // Networking 1-arg overload
+            AddProperty("VRCSDKBaseVRCPlayerApi", "playerId", "SystemInt32",
+                "VRCSDKBaseVRCPlayerApi.__get_playerId__SystemInt32");
         }
 
         private void RegisterUdonBehaviourMethods()
         {
+            _knownTypes.Add("VRCUdonUdonBehaviour");
             _knownTypes.Add("VRCUdonCommonInterfacesIUdonEventReceiver");
+
+            AddMethod("VRCUdonUdonBehaviour", "SendCustomEvent", new ExternSignature(
+                "VRCUdonCommonInterfacesIUdonEventReceiver.__SendCustomEvent__SystemString__SystemVoid",
+                new[] { "SystemString" }, "SystemVoid", true));
 
             AddMethod("VRCUdonCommonInterfacesIUdonEventReceiver", "SendCustomEvent",
                 new ExternSignature(
@@ -351,6 +470,16 @@ namespace Nori.Compiler
                 new ExternSignature(
                     "VRCUdonCommonInterfacesIUdonEventReceiver.__RequestSerialization__SystemVoid",
                     new string[0], "SystemVoid", true));
+        }
+
+        private void RegisterVector2Operations()
+        {
+            _knownTypes.Add("UnityEngineVector2");
+
+            AddProperty("UnityEngineVector2", "x", "SystemSingle",
+                "UnityEngineVector2.__get_x__SystemSingle", null);
+            AddProperty("UnityEngineVector2", "y", "SystemSingle",
+                "UnityEngineVector2.__get_y__SystemSingle", null);
         }
 
         private void RegisterVector3Operations()
@@ -447,6 +576,400 @@ namespace Nori.Compiler
             AddStaticMethod("UnityEngineMathf", "Lerp", new ExternSignature(
                 "UnityEngineMathf.__Lerp__SystemSingle_SystemSingle_SystemSingle__SystemSingle",
                 new[] { "SystemSingle", "SystemSingle", "SystemSingle" }, "SystemSingle", false));
+
+            AddStaticMethod("UnityEngineMathf", "Sin", new ExternSignature(
+                "UnityEngineMathf.__Sin__SystemSingle__SystemSingle",
+                new[] { "SystemSingle" }, "SystemSingle", false));
+
+            AddStaticMethod("UnityEngineMathf", "Cos", new ExternSignature(
+                "UnityEngineMathf.__Cos__SystemSingle__SystemSingle",
+                new[] { "SystemSingle" }, "SystemSingle", false));
+        }
+
+        private void RegisterColorOperations()
+        {
+            _knownTypes.Add("UnityEngineColor");
+
+            AddStaticMethod("UnityEngineColor", "LerpUnclamped", new ExternSignature(
+                "UnityEngineColor.__LerpUnclamped__UnityEngineColor_UnityEngineColor_SystemSingle__UnityEngineColor",
+                new[] { "UnityEngineColor", "UnityEngineColor", "SystemSingle" }, "UnityEngineColor", false));
+
+            AddStaticMethod("UnityEngineColor", "Lerp", new ExternSignature(
+                "UnityEngineColor.__Lerp__UnityEngineColor_UnityEngineColor_SystemSingle__UnityEngineColor",
+                new[] { "UnityEngineColor", "UnityEngineColor", "SystemSingle" }, "UnityEngineColor", false));
+
+            // Color constructor
+            AddStaticMethod("UnityEngineColor", "ctor", new ExternSignature(
+                "UnityEngineColor.__ctor__SystemSingle_SystemSingle_SystemSingle_SystemSingle__UnityEngineColor",
+                new[] { "SystemSingle", "SystemSingle", "SystemSingle", "SystemSingle" }, "UnityEngineColor", false));
+
+            // Color equality
+            AddOp(TokenKind.EqualsEquals, "UnityEngineColor",
+                "UnityEngineColor.__op_Equality__UnityEngineColor_UnityEngineColor__SystemBoolean", "SystemBoolean");
+            AddOp(TokenKind.BangEquals, "UnityEngineColor",
+                "UnityEngineColor.__op_Inequality__UnityEngineColor_UnityEngineColor__SystemBoolean", "SystemBoolean");
+        }
+
+        private void RegisterRandomOperations()
+        {
+            _knownTypes.Add("UnityEngineRandom");
+
+            AddStaticProperty("UnityEngineRandom", "value", "SystemSingle",
+                "UnityEngineRandom.__get_value__SystemSingle");
+            AddStaticProperty("UnityEngineRandom", "insideUnitSphere", "UnityEngineVector3",
+                "UnityEngineRandom.__get_insideUnitSphere__UnityEngineVector3");
+            AddStaticProperty("UnityEngineRandom", "rotation", "UnityEngineQuaternion",
+                "UnityEngineRandom.__get_rotation__UnityEngineQuaternion");
+
+            // Range(int, int)
+            AddStaticMethod("UnityEngineRandom", "Range", new ExternSignature(
+                "UnityEngineRandom.__Range__SystemInt32_SystemInt32__SystemInt32",
+                new[] { "SystemInt32", "SystemInt32" }, "SystemInt32", false));
+            // Range(float, float)
+            AddStaticMethod("UnityEngineRandom", "Range", new ExternSignature(
+                "UnityEngineRandom.__Range__SystemSingle_SystemSingle__SystemSingle",
+                new[] { "SystemSingle", "SystemSingle" }, "SystemSingle", false));
+            // ColorHSV(float, float, float, float, float, float)
+            AddStaticMethod("UnityEngineRandom", "ColorHSV", new ExternSignature(
+                "UnityEngineRandom.__ColorHSV__SystemSingle_SystemSingle_SystemSingle_SystemSingle_SystemSingle_SystemSingle__UnityEngineColor",
+                new[] { "SystemSingle", "SystemSingle", "SystemSingle", "SystemSingle", "SystemSingle", "SystemSingle" },
+                "UnityEngineColor", false));
+        }
+
+        private void RegisterInputMethods()
+        {
+            _knownTypes.Add("UnityEngineInput");
+
+            AddStaticMethod("UnityEngineInput", "GetKeyDown", new ExternSignature(
+                "UnityEngineInput.__GetKeyDown__UnityEngineKeyCode__SystemBoolean",
+                new[] { "UnityEngineKeyCode" }, "SystemBoolean", false));
+            AddStaticMethod("UnityEngineInput", "GetKey", new ExternSignature(
+                "UnityEngineInput.__GetKey__UnityEngineKeyCode__SystemBoolean",
+                new[] { "UnityEngineKeyCode" }, "SystemBoolean", false));
+            AddStaticMethod("UnityEngineInput", "GetKeyUp", new ExternSignature(
+                "UnityEngineInput.__GetKeyUp__UnityEngineKeyCode__SystemBoolean",
+                new[] { "UnityEngineKeyCode" }, "SystemBoolean", false));
+        }
+
+        private void RegisterMaterialProperties()
+        {
+            _knownTypes.Add("UnityEngineMaterial");
+
+            AddProperty("UnityEngineMaterial", "color", "UnityEngineColor",
+                "UnityEngineMaterial.__get_color__UnityEngineColor",
+                "UnityEngineMaterial.__set_color__UnityEngineColor__SystemVoid");
+
+            AddMethod("UnityEngineMaterial", "SetColor", new ExternSignature(
+                "UnityEngineMaterial.__SetColor__SystemString_UnityEngineColor__SystemVoid",
+                new[] { "SystemString", "UnityEngineColor" }, "SystemVoid", true));
+        }
+
+        private void RegisterRendererProperties()
+        {
+            _knownTypes.Add("UnityEngineRenderer");
+            _knownTypes.Add("UnityEngineMeshRenderer");
+
+            AddProperty("UnityEngineRenderer", "material", "UnityEngineMaterial",
+                "UnityEngineRenderer.__get_material__UnityEngineMaterial",
+                "UnityEngineRenderer.__set_material__UnityEngineMaterial__SystemVoid");
+
+            AddProperty("UnityEngineMeshRenderer", "material", "UnityEngineMaterial",
+                "UnityEngineRenderer.__get_material__UnityEngineMaterial",
+                "UnityEngineRenderer.__set_material__UnityEngineMaterial__SystemVoid");
+        }
+
+        private void RegisterRigidbodyProperties()
+        {
+            _knownTypes.Add("UnityEngineRigidbody");
+
+            AddProperty("UnityEngineRigidbody", "position", "UnityEngineVector3",
+                "UnityEngineRigidbody.__get_position__UnityEngineVector3",
+                "UnityEngineRigidbody.__set_position__UnityEngineVector3__SystemVoid");
+            AddProperty("UnityEngineRigidbody", "rotation", "UnityEngineQuaternion",
+                "UnityEngineRigidbody.__get_rotation__UnityEngineQuaternion",
+                "UnityEngineRigidbody.__set_rotation__UnityEngineQuaternion__SystemVoid");
+            AddProperty("UnityEngineRigidbody", "velocity", "UnityEngineVector3",
+                "UnityEngineRigidbody.__get_velocity__UnityEngineVector3",
+                "UnityEngineRigidbody.__set_velocity__UnityEngineVector3__SystemVoid");
+            AddProperty("UnityEngineRigidbody", "angularVelocity", "UnityEngineVector3",
+                "UnityEngineRigidbody.__get_angularVelocity__UnityEngineVector3",
+                "UnityEngineRigidbody.__set_angularVelocity__UnityEngineVector3__SystemVoid");
+        }
+
+        private void RegisterConstantForceProperties()
+        {
+            _knownTypes.Add("UnityEngineConstantForce");
+
+            AddProperty("UnityEngineConstantForce", "enabled", "SystemBoolean",
+                "UnityEngineBehaviour.__get_enabled__SystemBoolean",
+                "UnityEngineBehaviour.__set_enabled__SystemBoolean__SystemVoid");
+        }
+
+        private void RegisterLineRendererOperations()
+        {
+            _knownTypes.Add("UnityEngineLineRenderer");
+
+            AddProperty("UnityEngineLineRenderer", "positionCount", "SystemInt32",
+                "UnityEngineLineRenderer.__get_positionCount__SystemInt32",
+                "UnityEngineLineRenderer.__set_positionCount__SystemInt32__SystemVoid");
+
+            AddMethod("UnityEngineLineRenderer", "SetPosition", new ExternSignature(
+                "UnityEngineLineRenderer.__SetPosition__SystemInt32_UnityEngineVector3__SystemVoid",
+                new[] { "SystemInt32", "UnityEngineVector3" }, "SystemVoid", true));
+            AddMethod("UnityEngineLineRenderer", "GetPositions", new ExternSignature(
+                "UnityEngineLineRenderer.__GetPositions__UnityEngineVector3Array__SystemInt32",
+                new[] { "UnityEngineVector3Array" }, "SystemInt32", true));
+            AddMethod("UnityEngineLineRenderer", "SetPositions", new ExternSignature(
+                "UnityEngineLineRenderer.__SetPositions__UnityEngineVector3Array__SystemVoid",
+                new[] { "UnityEngineVector3Array" }, "SystemVoid", true));
+            AddMethod("UnityEngineLineRenderer", "Simplify", new ExternSignature(
+                "UnityEngineLineRenderer.__Simplify__SystemSingle__SystemVoid",
+                new[] { "SystemSingle" }, "SystemVoid", true));
+
+            // LineRenderer inherits from Component — register GetComponent
+            AddMethod("UnityEngineLineRenderer", "GetComponent", new ExternSignature(
+                "UnityEngineComponent.__GetComponent__SystemType__UnityEngineComponent",
+                new[] { "SystemType" }, "UnityEngineComponent", true));
+
+            AddProperty("UnityEngineLineRenderer", "gameObject", "UnityEngineGameObject",
+                "UnityEngineComponent.__get_gameObject__UnityEngineGameObject");
+        }
+
+        private void RegisterComponentProperties()
+        {
+            _knownTypes.Add("UnityEngineComponent");
+
+            AddProperty("UnityEngineComponent", "gameObject", "UnityEngineGameObject",
+                "UnityEngineComponent.__get_gameObject__UnityEngineGameObject");
+            AddProperty("UnityEngineComponent", "transform", "UnityEngineTransform",
+                "UnityEngineComponent.__get_transform__UnityEngineTransform");
+
+            AddMethod("UnityEngineComponent", "GetComponent", new ExternSignature(
+                "UnityEngineComponent.__GetComponent__SystemType__UnityEngineComponent",
+                new[] { "SystemType" }, "UnityEngineComponent", true));
+            AddMethod("UnityEngineComponent", "GetComponentsInChildren", new ExternSignature(
+                "UnityEngineComponent.__GetComponentsInChildren__SystemType__UnityEngineComponentArray",
+                new[] { "SystemType" }, "UnityEngineComponentArray", true));
+        }
+
+        private void RegisterVRCObjectPoolMethods()
+        {
+            _knownTypes.Add("VRCSDK3ComponentsVRCObjectPool");
+
+            AddMethod("VRCSDK3ComponentsVRCObjectPool", "TryToSpawn", new ExternSignature(
+                "VRCSDK3ComponentsVRCObjectPool.__TryToSpawn__UnityEngineGameObject",
+                new string[0], "UnityEngineGameObject", true));
+            AddMethod("VRCSDK3ComponentsVRCObjectPool", "Return", new ExternSignature(
+                "VRCSDK3ComponentsVRCObjectPool.__Return__UnityEngineGameObject__SystemVoid",
+                new[] { "UnityEngineGameObject" }, "SystemVoid", true));
+        }
+
+        private void RegisterVRCObjectSyncMethods()
+        {
+            _knownTypes.Add("VRCSDK3ComponentsVRCObjectSync");
+
+            AddMethod("VRCSDK3ComponentsVRCObjectSync", "Respawn", new ExternSignature(
+                "VRCSDK3ComponentsVRCObjectSync.__Respawn__SystemVoid",
+                new string[0], "SystemVoid", true));
+        }
+
+        private void RegisterVRCAvatarPedestalMethods()
+        {
+            _knownTypes.Add("VRCSDK3ComponentsVRCAvatarPedestal");
+
+            AddMethod("VRCSDK3ComponentsVRCAvatarPedestal", "SetAvatarUse", new ExternSignature(
+                "VRCSDK3ComponentsVRCAvatarPedestal.__SetAvatarUse__VRCSDKBaseVRCPlayerApi__SystemVoid",
+                new[] { "VRCSDKBaseVRCPlayerApi" }, "SystemVoid", true));
+        }
+
+        private void RegisterVRCPickupProperties()
+        {
+            _knownTypes.Add("VRCSDK3ComponentsVRCPickup");
+
+            AddProperty("VRCSDK3ComponentsVRCPickup", "IsHeld", "SystemBoolean",
+                "VRCSDK3ComponentsVRCPickup.__get_IsHeld__SystemBoolean");
+            AddProperty("VRCSDK3ComponentsVRCPickup", "gameObject", "UnityEngineGameObject",
+                "UnityEngineComponent.__get_gameObject__UnityEngineGameObject");
+        }
+
+        private void RegisterVRCVideoPlayerMethods()
+        {
+            _knownTypes.Add("VRCSDK3VideoComponentsBaseBaseVRCVideoPlayer");
+
+            AddMethod("VRCSDK3VideoComponentsBaseBaseVRCVideoPlayer", "PlayURL", new ExternSignature(
+                "VRCSDK3VideoComponentsBaseBaseVRCVideoPlayer.__PlayURL__VRCSDKBaseVRCUrl__SystemVoid",
+                new[] { "VRCSDKBaseVRCUrl" }, "SystemVoid", true));
+            AddMethod("VRCSDK3VideoComponentsBaseBaseVRCVideoPlayer", "GetTime", new ExternSignature(
+                "VRCSDK3VideoComponentsBaseBaseVRCVideoPlayer.__GetTime__SystemSingle",
+                new string[0], "SystemSingle", true));
+            AddMethod("VRCSDK3VideoComponentsBaseBaseVRCVideoPlayer", "SetTime", new ExternSignature(
+                "VRCSDK3VideoComponentsBaseBaseVRCVideoPlayer.__SetTime__SystemSingle__SystemVoid",
+                new[] { "SystemSingle" }, "SystemVoid", true));
+        }
+
+        private void RegisterVRCUrlInputFieldMethods()
+        {
+            _knownTypes.Add("VRCSDK3ComponentsVRCUrlInputField");
+
+            AddMethod("VRCSDK3ComponentsVRCUrlInputField", "GetUrl", new ExternSignature(
+                "VRCSDK3ComponentsVRCUrlInputField.__GetUrl__VRCSDKBaseVRCUrl",
+                new string[0], "VRCSDKBaseVRCUrl", true));
+        }
+
+        private void RegisterVRCStringDownloaderMethods()
+        {
+            _knownTypes.Add("VRCSDKBaseVRC_StringDownloader");
+            _knownTypes.Add("VRCSDKBaseVRCUrl");
+
+            AddStaticMethod("VRCSDKBaseVRC_StringDownloader", "LoadUrl", new ExternSignature(
+                "VRCSDKBaseVRC_StringDownloader.__LoadUrl__VRCSDKBaseVRCUrl_VRCUdonCommonInterfacesIUdonEventReceiver__SystemVoid",
+                new[] { "VRCSDKBaseVRCUrl" }, "SystemVoid", false));
+        }
+
+        private void RegisterVRCImageDownloaderMethods()
+        {
+            _knownTypes.Add("VRCSDK3ImageVRCImageDownloader");
+            _knownTypes.Add("VRCSDK3ImageTextureInfo");
+
+            // Constructor
+            AddStaticMethod("VRCSDK3ImageVRCImageDownloader", "ctor", new ExternSignature(
+                "VRCSDK3ImageVRCImageDownloader.__ctor____VRCSDK3ImageVRCImageDownloader",
+                new string[0], "VRCSDK3ImageVRCImageDownloader", false));
+
+            AddMethod("VRCSDK3ImageVRCImageDownloader", "DownloadImage", new ExternSignature(
+                "VRCSDK3ImageVRCImageDownloader.__DownloadImage__VRCSDKBaseVRCUrl_UnityEngineMaterial_VRCUdonCommonInterfacesIUdonEventReceiver_VRCSDK3ImageTextureInfo__SystemVoid",
+                new[] { "VRCSDKBaseVRCUrl", "UnityEngineMaterial", "VRCSDK3ImageTextureInfo" },
+                "SystemVoid", true));
+
+            AddMethod("VRCSDK3ImageVRCImageDownloader", "Dispose", new ExternSignature(
+                "VRCSDK3ImageVRCImageDownloader.__Dispose__SystemVoid",
+                new string[0], "SystemVoid", true));
+        }
+
+        private void RegisterVRCDownloadInterfaces()
+        {
+            _knownTypes.Add("VRCSDK3StringLoadingIVRCStringDownload");
+            _knownTypes.Add("VRCSDK3ImageIVRCImageDownload");
+
+            // IVRCStringDownload properties
+            AddProperty("VRCSDK3StringLoadingIVRCStringDownload", "Result", "SystemString",
+                "VRCSDK3StringLoadingIVRCStringDownload.__get_Result__SystemString");
+            AddProperty("VRCSDK3StringLoadingIVRCStringDownload", "Error", "SystemString",
+                "VRCSDK3StringLoadingIVRCStringDownload.__get_Error__SystemString");
+            AddProperty("VRCSDK3StringLoadingIVRCStringDownload", "ErrorCode", "SystemInt32",
+                "VRCSDK3StringLoadingIVRCStringDownload.__get_ErrorCode__SystemInt32");
+
+            // IVRCImageDownload properties
+            AddProperty("VRCSDK3ImageIVRCImageDownload", "Error", "SystemObject",
+                "VRCSDK3ImageIVRCImageDownload.__get_Error__SystemObject");
+            AddProperty("VRCSDK3ImageIVRCImageDownload", "ErrorMessage", "SystemString",
+                "VRCSDK3ImageIVRCImageDownload.__get_ErrorMessage__SystemString");
+        }
+
+        private void RegisterUIProperties()
+        {
+            _knownTypes.Add("UnityEngineUIText");
+            _knownTypes.Add("UnityEngineUIToggle");
+            _knownTypes.Add("UnityEngineUISlider");
+            _knownTypes.Add("UnityEngineUIDropdown");
+            _knownTypes.Add("UnityEngineUIInputField");
+
+            AddProperty("UnityEngineUIText", "text", "SystemString",
+                "UnityEngineUIText.__set_text__SystemString__SystemVoid" /* getter below */);
+            // Fix: set proper getter/setter
+            _properties[("UnityEngineUIText", "text")] = new PropertyInfo("SystemString",
+                new ExternSignature("UnityEngineUIText.__get_text__SystemString", new string[0], "SystemString", true),
+                new ExternSignature("UnityEngineUIText.__set_text__SystemString__SystemVoid", new[] { "SystemString" }, "SystemVoid", true));
+
+            _properties[("UnityEngineUIToggle", "isOn")] = new PropertyInfo("SystemBoolean",
+                new ExternSignature("UnityEngineUIToggle.__get_isOn__SystemBoolean", new string[0], "SystemBoolean", true),
+                new ExternSignature("UnityEngineUIToggle.__set_isOn__SystemBoolean__SystemVoid", new[] { "SystemBoolean" }, "SystemVoid", true));
+
+            _properties[("UnityEngineUISlider", "value")] = new PropertyInfo("SystemSingle",
+                new ExternSignature("UnityEngineUISlider.__get_value__SystemSingle", new string[0], "SystemSingle", true),
+                new ExternSignature("UnityEngineUISlider.__set_value__SystemSingle__SystemVoid", new[] { "SystemSingle" }, "SystemVoid", true));
+
+            _properties[("UnityEngineUIDropdown", "value")] = new PropertyInfo("SystemInt32",
+                new ExternSignature("UnityEngineUIDropdown.__get_value__SystemInt32", new string[0], "SystemInt32", true),
+                new ExternSignature("UnityEngineUIDropdown.__set_value__SystemInt32__SystemVoid", new[] { "SystemInt32" }, "SystemVoid", true));
+
+            _properties[("UnityEngineUIInputField", "text")] = new PropertyInfo("SystemString",
+                new ExternSignature("UnityEngineUIInputField.__get_text__SystemString", new string[0], "SystemString", true),
+                new ExternSignature("UnityEngineUIInputField.__set_text__SystemString__SystemVoid", new[] { "SystemString" }, "SystemVoid", true));
+
+            // UI.Text array support
+            _knownTypes.Add("UnityEngineUITextArray");
+            AddProperty("UnityEngineUITextArray", "Length", "SystemInt32",
+                "UnityEngineUITextArray.__get_Length__SystemInt32");
+            AddMethod("UnityEngineUITextArray", "Get", new ExternSignature(
+                "UnityEngineUITextArray.__Get__SystemInt32__UnityEngineUIText",
+                new[] { "SystemInt32" }, "UnityEngineUIText", true));
+            AddMethod("UnityEngineUITextArray", "Set", new ExternSignature(
+                "UnityEngineUITextArray.__Set__SystemInt32_UnityEngineUIText__SystemVoid",
+                new[] { "SystemInt32", "UnityEngineUIText" }, "SystemVoid", true));
+        }
+
+        private void RegisterUtilitiesMethods()
+        {
+            _knownTypes.Add("VRCSDKBaseUtilities");
+
+            AddStaticMethod("VRCSDKBaseUtilities", "IsValid", new ExternSignature(
+                "VRCSDKBaseUtilities.__IsValid__UnityEngineObject__SystemBoolean",
+                new[] { "UnityEngineObject" }, "SystemBoolean", false));
+
+            // VRCPlayerApi static methods
+            AddStaticMethod("VRCSDKBaseVRCPlayerApi", "IsValid", new ExternSignature(
+                "VRCSDKBaseUtilities.__IsValid__UnityEngineObject__SystemBoolean",
+                new[] { "UnityEngineObject" }, "SystemBoolean", false));
+            AddStaticMethod("VRCSDKBaseVRCPlayerApi", "GetPlayers", new ExternSignature(
+                "VRCSDKBaseVRCPlayerApi.__GetPlayers__VRCSDKBaseVRCPlayerApiArray__VRCSDKBaseVRCPlayerApiArray",
+                new[] { "VRCSDKBaseVRCPlayerApiArray" }, "VRCSDKBaseVRCPlayerApiArray", false));
+
+            // String.Format overloads
+            AddStaticMethod("SystemString", "Format", new ExternSignature(
+                "SystemString.__Format__SystemString_SystemObject__SystemString",
+                new[] { "SystemString", "SystemObject" }, "SystemString", false));
+            AddStaticMethod("SystemString", "Format", new ExternSignature(
+                "SystemString.__Format__SystemString_SystemObject_SystemObject__SystemString",
+                new[] { "SystemString", "SystemObject", "SystemObject" }, "SystemString", false));
+            AddStaticMethod("SystemString", "Format", new ExternSignature(
+                "SystemString.__Format__SystemString_SystemObject_SystemObject_SystemObject__SystemString",
+                new[] { "SystemString", "SystemObject", "SystemObject", "SystemObject" }, "SystemString", false));
+        }
+
+        private void RegisterEnums()
+        {
+            _enums["VRCSDKBaseVRCPlayerApiTrackingDataType"] = new EnumTypeInfo(
+                "VRCSDKBaseVRCPlayerApiTrackingDataType", "SystemInt32",
+                new Dictionary<string, int>
+                {
+                    ["Head"] = 0, ["LeftHand"] = 1, ["RightHand"] = 2, ["Origin"] = 3
+                });
+
+            _enums["VRCSDKBaseVRC_PickupPickupHand"] = new EnumTypeInfo(
+                "VRCSDKBaseVRC_PickupPickupHand", "SystemInt32",
+                new Dictionary<string, int>
+                {
+                    ["Left"] = 0, ["Right"] = 1
+                });
+
+            _enums["UnityEngineKeyCode"] = new EnumTypeInfo(
+                "UnityEngineKeyCode", "SystemInt32",
+                new Dictionary<string, int>
+                {
+                    ["None"] = 0, ["Backspace"] = 8, ["Tab"] = 9, ["Return"] = 13,
+                    ["Escape"] = 27, ["Space"] = 32, ["Delete"] = 127,
+                    ["Alpha0"] = 48, ["Alpha1"] = 49, ["Alpha2"] = 50, ["Alpha3"] = 51,
+                    ["Alpha4"] = 52, ["Alpha5"] = 53, ["Alpha6"] = 54, ["Alpha7"] = 55,
+                    ["Alpha8"] = 56, ["Alpha9"] = 57,
+                    ["A"] = 97, ["B"] = 98, ["C"] = 99, ["D"] = 100, ["E"] = 101,
+                    ["F"] = 102, ["G"] = 103, ["H"] = 104, ["I"] = 105, ["J"] = 106,
+                    ["K"] = 107, ["L"] = 108, ["M"] = 109, ["N"] = 110, ["O"] = 111,
+                    ["P"] = 112, ["Q"] = 113, ["R"] = 114, ["S"] = 115, ["T"] = 116,
+                    ["U"] = 117, ["V"] = 118, ["W"] = 119, ["X"] = 120, ["Y"] = 121,
+                    ["Z"] = 122, ["LeftShift"] = 304, ["RightShift"] = 303,
+                    ["LeftControl"] = 306, ["RightControl"] = 305,
+                });
         }
 
         // --- IExternCatalog implementation ---
@@ -499,6 +1022,24 @@ namespace Nori.Compiler
             {
                 if (_operators.TryGetValue((op, "SystemSingle", "SystemSingle"), out info))
                     return new OperatorInfo(info.Extern, info.ReturnType, "SystemSingle", "SystemSingle");
+            }
+
+            // String concatenation: string + <any> or <any> + string
+            // Uses String.Concat(string, string) — the non-string side needs .ToString()
+            if (op == TokenKind.Plus)
+            {
+                if (leftType == "SystemString" && rightType != "SystemString")
+                {
+                    return new OperatorInfo(
+                        "SystemString.__Concat__SystemString_SystemString__SystemString",
+                        "SystemString", "SystemString", "SystemString");
+                }
+                if (rightType == "SystemString" && leftType != "SystemString")
+                {
+                    return new OperatorInfo(
+                        "SystemString.__Concat__SystemString_SystemString__SystemString",
+                        "SystemString", "SystemString", "SystemString");
+                }
             }
 
             // Object fallback for equality/inequality (null comparisons)
@@ -554,8 +1095,13 @@ namespace Nori.Compiler
             return new List<ExternSignature>();
         }
 
-        public EnumTypeInfo ResolveEnum(string udonType) => null;
-        public bool IsEnumType(string udonType) => false;
+        public EnumTypeInfo ResolveEnum(string udonType)
+        {
+            _enums.TryGetValue(udonType, out var info);
+            return info;
+        }
+
+        public bool IsEnumType(string udonType) => _enums.ContainsKey(udonType);
         public CatalogTypeInfo GetTypeInfo(string udonType) => null;
 
         public ImplicitConversion GetImplicitConversion(string fromType, string toType)
@@ -566,6 +1112,11 @@ namespace Nori.Compiler
         public IEnumerable<string> GetStaticTypeNames()
         {
             return Enumerable.Empty<string>();
+        }
+
+        public string GetClrTypeName(string udonType)
+        {
+            return TypeSystem.UdonTypeToClrName(udonType);
         }
 
         private ExternSignature FindBestOverload(List<ExternSignature> overloads, string[] argTypes)

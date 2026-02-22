@@ -1,0 +1,36 @@
+/*
+ * Set All Players Max Audio Distance — Configures voice and avatar audio range
+ *
+ * Attach to an interactable object. When a player clicks it,
+ * the script iterates over all players in the world and sets
+ * their voice distance far and avatar audio far radius to the
+ * configured max distance.
+ *
+ * Features shown: on Interact, VRCPlayerApi.GetPlayers(),
+ *                 VRCPlayerApi.SetVoiceDistanceFar(),
+ *                 VRCPlayerApi.SetAvatarAudioFarRadius(),
+ *                 array iteration, null checks
+ */
+
+/// Maximum audio distance to apply to all players
+pub let max_distance: float = 25.0
+
+on Interact {
+    // Create a player array and fill it
+    let players: VRCPlayerApi[] = VRCPlayerApi[8]
+    let count: int = players.Length
+
+    let i: int = 0
+    while i < count {
+        VRCPlayerApi.GetPlayers(players)
+        let player: VRCPlayerApi = players[i]
+
+        if player != null {
+            // Set voice and avatar audio range
+            player.SetVoiceDistanceFar(max_distance)
+            player.SetAvatarAudioFarRadius(max_distance)
+        }
+
+        i = i + 1
+    }
+}

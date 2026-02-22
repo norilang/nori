@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: 8fdf606b63909814bbe84dc2d4188d52
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"materials","TypeName":"Material","IsArray":true,"DefaultValue":"","SyncMode":"","DocComment":"Array
+    of materials to cycle through"},{"Name":"mesh_renderer","TypeName":"MeshRenderer","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"The
+    renderer to change the material on"}],"SyncVars":[],"Events":[],"CustomEvents":[],"Functions":["changeMaterial"],"ErrorCount":0,"WarningCount":0,"Diagnostics":[]}'

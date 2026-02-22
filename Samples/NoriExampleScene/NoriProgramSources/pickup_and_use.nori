@@ -1,0 +1,31 @@
+/*
+ * Pickup and Use — Changes material color on use button
+ *
+ * Attach to a GameObject with a VRC Pickup component and a
+ * MeshRenderer. On Start, the script caches the material from
+ * the MeshRenderer. When the use button is pressed (PickupUseDown),
+ * the material color changes to green. When released (PickupUseUp),
+ * it changes back to grey.
+ *
+ * Features shown: on PickupUseDown, on PickupUseUp, on Start,
+ *                 GameObject.GetComponent(), Material.color,
+ *                 MeshRenderer.material
+ */
+
+let target_material: Material
+
+on Start {
+    // Cache the material from the MeshRenderer on this GameObject
+    let renderer: MeshRenderer = gameObject.GetComponent(MeshRenderer)
+    target_material = renderer.material
+}
+
+on PickupUseDown {
+    // Set color to green when use button is pressed
+    target_material.color = Color(0.316, 1.0, 0.0, 1.0)
+}
+
+on PickupUseUp {
+    // Set color back to grey when use button is released
+    target_material.color = Color(0.67, 0.67, 0.67, 1.0)
+}

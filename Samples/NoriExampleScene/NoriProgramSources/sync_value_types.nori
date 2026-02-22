@@ -1,0 +1,48 @@
+/*
+ * Sync Value Types — Demonstrates syncing multiple value types (none)
+ *
+ * The master client randomizes all synced variables when the R key
+ * is pressed. All players see the current values displayed on a
+ * UI Text element, updated every LateUpdate.
+ *
+ * Features shown: sync none, bool, int, float, string, Color,
+ *                 Vector3, Quaternion, Random, IsMaster, Input,
+ *                 on Update, on LateUpdate, UI.Text
+ */
+
+/// Text element to display all synced values
+pub let ui_text: UI.Text
+
+// Synced variables with 'none' interpolation
+sync none bool_value: bool = false
+sync none int_value: int = 0
+sync none float_value: float = 0.0
+sync none string_value: string = "0000"
+sync none color_value: Color
+sync none vector3_value: Vector3
+sync none quaternion_value: Quaternion
+
+on Update {
+    // Only the master randomizes values when R is pressed
+    if Networking.IsMaster && Input.GetKeyDown(KeyCode.R) {
+        bool_value = Random.value > 0.5
+        int_value = Random.Range(0, 10)
+        float_value = Random.Range(0.0, 1.0)
+        string_value = Random.Range(0, 9999).ToString()
+        vector3_value = Random.insideUnitSphere
+        quaternion_value = Random.rotation
+        color_value = Random.ColorHSV(0.0, 1.0, 0.0, 1.0, 0.8, 1.0)
+    }
+}
+
+on LateUpdate {
+    // Display all synced values on the text element
+    let bool_str: string = "bool: {bool_value}\n"
+    let int_str: string = "int: {int_value}\n"
+    let float_str: string = "float: {float_value}\n"
+    let string_str: string = "string: {string_value}\n"
+    let vec_str: string = "vector3: {vector3_value}\n"
+    let quat_str: string = "quaternion: {quaternion_value}\n"
+    let color_str: string = "color: {color_value}\n"
+    ui_text.text = bool_str + int_str + float_str + string_str + vec_str + quat_str + color_str
+}

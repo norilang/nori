@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 5275f587c07eba44ebca017d083634ac
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"player","TypeName":"VRCVideoPlayer","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Video
+    player component to control"},{"Name":"url_input_field","TypeName":"VRCUrlInputField","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"URL
+    input field for entering video URLs"},{"Name":"sync_frequency","TypeName":"float","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"How
+    often (in seconds) the owner syncs playback time (0 = disabled)"},{"Name":"allow_guest_control","TypeName":"bool","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Whether
+    non-owners can take control of the player"}],"SyncVars":[{"Name":"url","TypeName":"VRCUrl","IsArray":false,"DefaultValue":"","SyncMode":"none","DocComment":""},{"Name":"time_and_offset","TypeName":"Vector2","IsArray":false,"DefaultValue":"","SyncMode":"none","DocComment":""}],"Events":["VariableChange","VideoStart","OwnershipRequest"],"CustomEvents":[],"Functions":["OnURLChanged","UpdateTimeAndOffset","Resync"],"ErrorCount":2,"WarningCount":0,"Diagnostics":[{"Severity":"error","Code":"E0040","Message":"Unknown
+    type ''VRCVideoPlayer''","Line":27,"Column":5,"Hint":""},{"Severity":"error","Code":"E0040","Message":"Unknown
+    type ''VRCUrlInputField''","Line":30,"Column":5,"Hint":""}]}'

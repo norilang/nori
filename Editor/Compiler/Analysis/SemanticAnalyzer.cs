@@ -57,6 +57,23 @@ namespace Nori.Compiler
             ["InputMoveVertical"] = "_inputMoveVertical",
             ["InputLookHorizontal"] = "_inputLookHorizontal",
             ["InputLookVertical"] = "_inputLookVertical",
+            ["MouseDown"] = "_onMouseDown",
+            ["Destroy"] = "_onDestroy",
+            ["CollisionExit"] = "_onCollisionExit",
+            ["PlayerTriggerEnter"] = "_onPlayerTriggerEnter",
+            ["PlayerTriggerExit"] = "_onPlayerTriggerExit",
+            ["PlayerCollisionEnter"] = "_onPlayerCollisionEnter",
+            ["PlayerCollisionExit"] = "_onPlayerCollisionExit",
+            ["PlayerParticleCollision"] = "_onPlayerParticleCollision",
+            ["Deserialization"] = "_onDeserialization",
+            ["OwnershipRequest"] = "_onOwnershipRequest",
+            ["OwnershipTransferred"] = "_onOwnershipTransferred",
+            ["VideoStart"] = "_onVideoStart",
+            ["AvatarEyeHeightChanged"] = "_onAvatarEyeHeightChanged",
+            ["StringLoadSuccess"] = "_onStringLoadSuccess",
+            ["StringLoadError"] = "_onStringLoadError",
+            ["ImageLoadSuccess"] = "_onImageLoadSuccess",
+            ["ImageLoadError"] = "_onImageLoadError",
         };
 
         public SemanticAnalyzer(ModuleDecl module, IExternCatalog catalog, DiagnosticBag diagnostics)
@@ -112,6 +129,10 @@ namespace Nori.Compiler
                 SourceSpan.None, SymbolKind.Builtin));
             _currentScope.Define(new Symbol("RequestSerialization", "SystemVoid",
                 SourceSpan.None, SymbolKind.Builtin));
+            _currentScope.Define(new Symbol("IsValid", "SystemBoolean",
+                SourceSpan.None, SymbolKind.Builtin));
+            _currentScope.Define(new Symbol("SendCustomEventDelayedSeconds", "SystemVoid",
+                SourceSpan.None, SymbolKind.Builtin));
 
             // Hardcoded static type names (always available)
             _currentScope.Define(new Symbol("Time", "UnityEngineTime",
@@ -125,6 +146,26 @@ namespace Nori.Compiler
             _currentScope.Define(new Symbol("Quaternion", "UnityEngineQuaternion",
                 SourceSpan.None, SymbolKind.StaticType));
             _currentScope.Define(new Symbol("Mathf", "UnityEngineMathf",
+                SourceSpan.None, SymbolKind.StaticType));
+            _currentScope.Define(new Symbol("Color", "UnityEngineColor",
+                SourceSpan.None, SymbolKind.StaticType));
+            _currentScope.Define(new Symbol("Random", "UnityEngineRandom",
+                SourceSpan.None, SymbolKind.StaticType));
+            _currentScope.Define(new Symbol("Input", "UnityEngineInput",
+                SourceSpan.None, SymbolKind.StaticType));
+            _currentScope.Define(new Symbol("String", "SystemString",
+                SourceSpan.None, SymbolKind.StaticType));
+            _currentScope.Define(new Symbol("Physics", "UnityEnginePhysics",
+                SourceSpan.None, SymbolKind.StaticType));
+            _currentScope.Define(new Symbol("Vector4", "UnityEngineVector4",
+                SourceSpan.None, SymbolKind.StaticType));
+            _currentScope.Define(new Symbol("VRCPlayerApi", "VRCSDKBaseVRCPlayerApi",
+                SourceSpan.None, SymbolKind.StaticType));
+            _currentScope.Define(new Symbol("Utilities", "VRCSDKBaseUtilities",
+                SourceSpan.None, SymbolKind.StaticType));
+            _currentScope.Define(new Symbol("VRCStringDownloader", "VRCSDKBaseVRC_StringDownloader",
+                SourceSpan.None, SymbolKind.StaticType));
+            _currentScope.Define(new Symbol("VRCImageDownloader", "VRCSDK3ImageVRCImageDownloader",
                 SourceSpan.None, SymbolKind.StaticType));
 
             // Dynamic registration from catalog: register all types with static members
@@ -222,6 +263,16 @@ namespace Nori.Compiler
             }
         }
 
+        // Implicit event parameters — VRC events that receive data automatically
+        private static readonly Dictionary<string, (string paramName, string paramType)> EventImplicitParams
+            = new Dictionary<string, (string, string)>
+        {
+            ["StringLoadSuccess"] = ("result", "VRCSDK3StringLoadingIVRCStringDownload"),
+            ["StringLoadError"] = ("result", "VRCSDK3StringLoadingIVRCStringDownload"),
+            ["ImageLoadSuccess"] = ("result", "VRCSDK3ImageIVRCImageDownload"),
+            ["ImageLoadError"] = ("result", "VRCSDK3ImageIVRCImageDownload"),
+        };
+
         private void AnalyzeEventHandler(EventHandlerDecl handler)
         {
             if (!EventNameMap.ContainsKey(handler.EventName))
@@ -241,6 +292,16 @@ namespace Nori.Compiler
                 string paramType = ResolveTypeName(param.TypeName, false, param.Span);
                 scope.Define(new Symbol(param.Name, paramType, param.Span, SymbolKind.Parameter));
                 _scopeMap[param] = scope;
+            }
+
+            // Define implicit event parameters (e.g., 'result' for download events)
+            if (EventImplicitParams.TryGetValue(handler.EventName, out var implicitParam))
+            {
+                if (scope.Lookup(implicitParam.paramName) == null)
+                {
+                    scope.Define(new Symbol(implicitParam.paramName, implicitParam.paramType,
+                        SourceSpan.None, SymbolKind.Parameter));
+                }
             }
 
             AnalyzeBlock(handler.Body);
@@ -464,9 +525,9 @@ namespace Nori.Compiler
                     break;
                 case SendStmt send:
                 {
-                    // Verify the event exists
+                    // Verify the event exists (custom events or functions are valid targets)
                     var sym = _currentScope.Lookup(send.EventName);
-                    if (sym == null || sym.Kind != SymbolKind.CustomEvent)
+                    if (sym == null || (sym.Kind != SymbolKind.CustomEvent && sym.Kind != SymbolKind.Function))
                     {
                         _diagnostics.ReportError("E0071",
                             $"Undefined custom event '{send.EventName}'", send.Span);
@@ -527,6 +588,16 @@ namespace Nori.Compiler
                     if (arr.Elements.Count > 0 && arr.Elements[0].ResolvedType != null)
                         arr.ResolvedType = arr.Elements[0].ResolvedType + "Array";
                     break;
+
+                case CastExpr cast:
+                    AnalyzeExpr(cast.Operand);
+                    string castTarget = TypeSystem.ResolveType(cast.TargetTypeName);
+                    if (castTarget == null)
+                        _diagnostics.ReportError("E0040",
+                            $"Unknown type '{cast.TargetTypeName}'", cast.Span);
+                    else
+                        cast.ResolvedType = castTarget;
+                    break;
             }
 
             // Track resolved type for LSP
@@ -539,9 +610,20 @@ namespace Nori.Compiler
             var sym = _currentScope.Lookup(name.Name);
             if (sym == null)
             {
-                string suggestion = _currentScope.FindClosest(name.Name);
-                _diagnostics.ReportUndefinedVariable(name.Name, name.Span, suggestion);
-                return;
+                // Try resolving as a type name (for type-as-value usage like GetComponent(MeshRenderer))
+                string udonType = TypeSystem.ResolveType(name.Name);
+                if (udonType != null)
+                {
+                    var kind = _catalog.IsEnumType(udonType) ? SymbolKind.EnumType : SymbolKind.StaticType;
+                    sym = new Symbol(name.Name, udonType, SourceSpan.None, kind);
+                    _currentScope.Define(sym);
+                }
+                else
+                {
+                    string suggestion = _currentScope.FindClosest(name.Name);
+                    _diagnostics.ReportUndefinedVariable(name.Name, name.Span, suggestion);
+                    return;
+                }
             }
 
             name.ResolvedSymbol = sym;
@@ -662,7 +744,7 @@ namespace Nori.Compiler
 
             string[] argTypes = call.Arguments.Select(a => a.ResolvedType ?? "SystemObject").ToArray();
 
-            // Handle builtin calls: log, warn, error, RequestSerialization
+            // Handle builtin calls: log, warn, error, RequestSerialization, IsValid, SendCustomEventDelayedSeconds
             if (call.Callee is NameExpr nameExpr)
             {
                 var sym = _currentScope.Lookup(nameExpr.Name);
@@ -680,7 +762,30 @@ namespace Nori.Compiler
                         case "RequestSerialization":
                             call.ResolvedType = "SystemVoid";
                             return;
+                        case "IsValid":
+                            call.ResolvedType = "SystemBoolean";
+                            return;
+                        case "SendCustomEventDelayedSeconds":
+                            call.ResolvedType = "SystemVoid";
+                            return;
                     }
+                }
+
+                // Handle constructor calls: Color(...), Vector3(...), etc.
+                if (sym != null && sym.Kind == SymbolKind.StaticType)
+                {
+                    string udonType = sym.UdonType;
+                    var sig = _catalog.ResolveStaticMethod(udonType, "ctor", argTypes);
+                    if (sig != null)
+                    {
+                        call.ResolvedExtern = sig;
+                        call.ResolvedType = udonType;
+                        call.IsConstructorCall = true;
+                        nameExpr.ResolvedSymbol = sym;
+                        AnnotateImplicitConversions(call, sig, argTypes);
+                        return;
+                    }
+                    // If no ctor found, fall through to try as function/undefined
                 }
 
                 // Handle function calls
@@ -727,6 +832,17 @@ namespace Nori.Compiler
                     isStatic = true;
                 }
 
+                // Detect type references used as values: StaticType names become SystemType
+                for (int i = 0; i < call.Arguments.Count; i++)
+                {
+                    if (call.Arguments[i] is NameExpr argName &&
+                        argName.ResolvedSymbol?.Kind == SymbolKind.StaticType)
+                    {
+                        argTypes[i] = "SystemType";
+                        argName.ResolvedType = "SystemType"; // Signal to IR lowerer
+                    }
+                }
+
                 ExternSignature sig;
                 if (isStatic)
                     sig = _catalog.ResolveStaticMethod(ownerType, memberExpr.MemberName, argTypes);
@@ -741,6 +857,25 @@ namespace Nori.Compiler
 
                     // Annotate implicit conversions per argument
                     AnnotateImplicitConversions(call, sig, argTypes);
+
+                    // Override return type for GetComponent-family methods with type argument
+                    if (IsGetComponentMethod(memberExpr.MemberName))
+                    {
+                        for (int i = 0; i < call.Arguments.Count; i++)
+                        {
+                            if (call.Arguments[i] is NameExpr argName &&
+                                argName.ResolvedSymbol?.Kind == SymbolKind.StaticType)
+                            {
+                                string typeParam = argName.ResolvedSymbol.UdonType;
+                                call.ResolvedType = ReturnsArray(memberExpr.MemberName)
+                                    ? typeParam + "Array"
+                                    : typeParam;
+                                memberExpr.ResolvedType = call.ResolvedType;
+                                break;
+                            }
+                        }
+                    }
+
                     return;
                 }
 
@@ -811,6 +946,18 @@ namespace Nori.Compiler
         {
             AnalyzeExpr(index.Object);
             AnalyzeExpr(index.Index);
+
+            // Array construction: Type[size] — e.g., VRCPlayerApi[8]
+            if (index.Object is NameExpr indexName &&
+                indexName.ResolvedSymbol != null &&
+                (indexName.ResolvedSymbol.Kind == SymbolKind.StaticType ||
+                 indexName.ResolvedSymbol.Kind == SymbolKind.EnumType))
+            {
+                string elemType = indexName.ResolvedSymbol.UdonType;
+                index.ResolvedType = elemType + "Array";
+                index.IsArrayConstruction = true;
+                return;
+            }
 
             if (index.Object.ResolvedType != null &&
                 index.Object.ResolvedType.EndsWith("Array"))
@@ -943,5 +1090,14 @@ namespace Nori.Compiler
             return EventNameMap.TryGetValue(noriEventName, out var udonName)
                 ? udonName : "_" + noriEventName;
         }
+
+        private static bool IsGetComponentMethod(string name) =>
+            name == "GetComponent" || name == "GetComponents" ||
+            name == "GetComponentInChildren" || name == "GetComponentsInChildren" ||
+            name == "GetComponentInParent" || name == "GetComponentsInParent";
+
+        private static bool ReturnsArray(string name) =>
+            name == "GetComponents" || name == "GetComponentsInChildren" ||
+            name == "GetComponentsInParent";
     }
 }

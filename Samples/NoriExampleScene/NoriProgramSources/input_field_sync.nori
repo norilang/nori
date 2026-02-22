@@ -1,0 +1,34 @@
+/*
+ * Input Field Sync — Synced UI input field
+ *
+ * Attach to a UI InputField via its OnEndEdit event (set to "OnEndEdit").
+ * When a player finishes editing the field, the script checks if the
+ * text actually changed, takes ownership, and syncs the new value.
+ * Remote players see the input field update via on VariableChange.
+ *
+ * Features shown: sync none, UI.InputField, Networking.SetOwner(),
+ *                 RequestSerialization(), on VariableChange, localPlayer
+ */
+
+/// The UI InputField to sync across the network
+pub let ui_input_field: UI.InputField
+
+// Synced text value — replicated to all players
+sync none field_value: string
+
+// OnEndEdit is a custom event called by UI InputField.onEndEdit
+fn OnEndEdit() {
+    // Only sync if the text actually changed
+    let new_text: string = ui_input_field.text
+    if new_text != field_value {
+        // Take ownership and sync the new text
+        Networking.SetOwner(localPlayer, gameObject)
+        field_value = new_text
+        RequestSerialization()
+    }
+}
+
+on VariableChange {
+    // Update the input field when the synced value changes from network
+    ui_input_field.text = field_value
+}

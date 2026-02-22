@@ -1,0 +1,19 @@
+/*
+ * Fire On Trigger — Send an event when a player enters a trigger
+ *
+ * When a player walks into this trigger volume, sends a custom
+ * event to the target UdonBehaviour and logs the action.
+ *
+ * Features shown: pub let, UdonBehaviour, SendCustomEvent, log()
+ */
+
+/// The name of the custom event to fire
+pub let event_name: string
+
+/// The UdonBehaviour to send the event to
+pub let target: UdonBehaviour
+
+on PlayerTriggerEnter(player: VRCPlayerApi) {
+    target.SendCustomEvent(event_name)
+    log("sent {event_name} to {target}")
+}

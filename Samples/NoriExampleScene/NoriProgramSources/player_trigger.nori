@@ -1,0 +1,23 @@
+/*
+ * Player Trigger — Displays player name on trigger enter/exit
+ *
+ * Attach to a GameObject with a trigger collider. When a player
+ * enters or exits the trigger zone, the assigned UI Text field
+ * is updated with the player's display name and the action.
+ *
+ * Features shown: PlayerTriggerEnter, PlayerTriggerExit,
+ *                 VRCPlayerApi.displayName, UI Text
+ */
+
+/// UI Text element to display the player name
+pub let text_field: UI.Text
+
+on PlayerTriggerEnter(player: VRCPlayerApi) {
+    let name: string = player.displayName
+    text_field.text = String.Format("{0} Entered", name)
+}
+
+on PlayerTriggerExit(player: VRCPlayerApi) {
+    let name: string = player.displayName
+    text_field.text = String.Format("{0} Exited", name)
+}

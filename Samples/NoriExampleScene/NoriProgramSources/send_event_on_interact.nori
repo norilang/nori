@@ -1,0 +1,19 @@
+/*
+ * Send Event On Interact — Forward an event to another UdonBehaviour
+ *
+ * When a player clicks this object, it sends a custom event
+ * to the specified target. Set 'target' and 'event_name' in
+ * the inspector.
+ *
+ * Features shown: pub let, on Interact, UdonBehaviour, SendCustomEvent
+ */
+
+/// The UdonBehaviour to send the event to
+pub let target: UdonBehaviour
+
+/// The name of the custom event to send
+pub let event_name: string
+
+on Interact {
+    target.SendCustomEvent(event_name)
+}

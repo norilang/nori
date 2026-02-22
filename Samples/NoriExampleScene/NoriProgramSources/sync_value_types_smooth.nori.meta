@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 12d91f14a75c3a841b01b8e28868702b
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"ui_text","TypeName":"UI.Text","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Text
+    element to display all synced values"}],"SyncVars":[{"Name":"bool_value","TypeName":"bool","IsArray":false,"DefaultValue":"","SyncMode":"smooth","DocComment":""},{"Name":"int_value","TypeName":"int","IsArray":false,"DefaultValue":"","SyncMode":"smooth","DocComment":""},{"Name":"float_value","TypeName":"float","IsArray":false,"DefaultValue":"","SyncMode":"smooth","DocComment":""},{"Name":"string_value","TypeName":"string","IsArray":false,"DefaultValue":"","SyncMode":"smooth","DocComment":""},{"Name":"color_value","TypeName":"Color","IsArray":false,"DefaultValue":"","SyncMode":"smooth","DocComment":""},{"Name":"vector3_value","TypeName":"Vector3","IsArray":false,"DefaultValue":"","SyncMode":"smooth","DocComment":""},{"Name":"quaternion_value","TypeName":"Quaternion","IsArray":false,"DefaultValue":"","SyncMode":"smooth","DocComment":""}],"Events":["Update","LateUpdate"],"CustomEvents":[],"Functions":[],"ErrorCount":3,"WarningCount":0,"Diagnostics":[{"Severity":"error","Code":"E0040","Message":"Unknown
+    type ''UI.Text''","Line":15,"Column":5,"Hint":""},{"Severity":"error","Code":"E0070","Message":"Undefined
+    variable ''KeyCode''","Line":28,"Column":48,"Hint":""},{"Severity":"error","Code":"E0130","Message":"No
+    matching overload for UnityEngineInput.GetKeyDown with arguments (object)","Line":28,"Column":31,"Hint":"Available
+    overloads:\n  (name: string) -> bool\n  (key: UnityEngineKeyCode) -> bool"}]}'

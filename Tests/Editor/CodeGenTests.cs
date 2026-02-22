@@ -358,8 +358,9 @@ on Start {
 ";
             var result = NoriCompiler.Compile(source, "test.nori", catalog);
             Assert.IsTrue(result.Success, FormatErrors(result));
-            // The enum value Space.Self=1 should appear as a constant in the data section
-            Assert.That(result.Uasm, Does.Contain("%UnityEngineSpace"));
+            // The enum value Space.Self=1 should appear as a SystemInt32 constant in the data section
+            // (Udon's assembler can't initialize enum-typed vars from integer values)
+            Assert.That(result.Uasm, Does.Contain("%SystemInt32, 1"));
         }
 
         [Test]

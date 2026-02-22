@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: f3e0623206311434e881d38b9c132f7d
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"ui_input_field","TypeName":"UI.InputField","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"The
+    UI InputField to sync across the network"}],"SyncVars":[{"Name":"field_value","TypeName":"string","IsArray":false,"DefaultValue":"","SyncMode":"none","DocComment":""}],"Events":["VariableChange"],"CustomEvents":[],"Functions":["OnEndEdit"],"ErrorCount":1,"WarningCount":0,"Diagnostics":[{"Severity":"error","Code":"E0040","Message":"Unknown
+    type ''UI.InputField''","Line":14,"Column":5,"Hint":""}]}'

@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: bacc5179a6dec064498348c1fd94be12
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"target","TypeName":"Transform","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Transform
+    to move (defaults to this object''s transform)"},{"Name":"smooth_position","TypeName":"float","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Smoothing
+    factor (lower = smoother, higher = snappier)"}],"SyncVars":[],"Events":["LateUpdate"],"CustomEvents":[],"Functions":[],"ErrorCount":3,"WarningCount":0,"Diagnostics":[{"Severity":"error","Code":"E0040","Message":"Unknown
+    type ''TrackingData''","Line":31,"Column":5,"Hint":""},{"Severity":"error","Code":"E0070","Message":"Undefined
+    variable ''TrackingDataType''","Line":31,"Column":57,"Hint":""},{"Severity":"error","Code":"E0130","Message":"No
+    matching overload for VRCPlayerApi.GetTrackingData with arguments (object)","Line":31,"Column":34,"Hint":"Available
+    overloads:\n  (tt: VRCSDKBaseVRCPlayerApiTrackingDataType) -> VRCSDKBaseVRCPlayerApiTrackingData"}]}'

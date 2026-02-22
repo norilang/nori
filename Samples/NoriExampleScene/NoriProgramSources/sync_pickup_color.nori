@@ -1,0 +1,44 @@
+/*
+ * Sync Pickup Color — Networked color-changing pickup
+ *
+ * Attach to a VRC Pickup object. While the owner holds the pickup,
+ * the color oscillates between fromColor and toColor using a sine
+ * wave. The synced color is applied to the target renderer's
+ * material every frame for all players.
+ *
+ * Features shown: sync smooth, VRCPickup, Renderer, Material,
+ *                 Color.LerpUnclamped(), Mathf.Sin(), Time.time,
+ *                 Networking.IsOwner(), on Update, on OwnershipTransferred
+ */
+
+/// Starting color for the oscillation
+pub let from_color: Color
+
+/// Ending color for the oscillation
+pub let to_color: Color
+
+/// Renderer whose material color will be updated
+pub let target_renderer: Renderer
+
+/// The VRC Pickup component on this object
+pub let pickup: VRCPickup
+
+// Synced color — smoothly interpolated across the network
+sync smooth sync_color: Color
+
+on Update {
+    // Only the owner updates the color while holding the pickup
+    let pickup_obj: GameObject = pickup.gameObject
+    if Networking.IsOwner(localPlayer, pickup_obj) && pickup.IsHeld {
+        let t: float = Mathf.Sin(Time.time)
+        sync_color = Color.LerpUnclamped(from_color, to_color, t)
+    }
+
+    // All players apply the synced color to the material
+    let mat: Material = target_renderer.material
+    mat.SetColor("_Color", sync_color)
+}
+
+on OwnershipTransferred {
+    log("Ownership transferred")
+}

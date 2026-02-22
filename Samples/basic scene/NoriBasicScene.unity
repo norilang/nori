@@ -2190,7 +2190,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 39.422, z: 0}
 --- !u!114 &1674991070
 MonoBehaviour:
-  m_ObjectHideFlags: 2
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}

@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: aa4e31e6ced25804e85c9a3528d79384
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"target_game_object","TypeName":"GameObject","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"The
+    object to toggle on and off"}],"SyncVars":[],"Events":[],"CustomEvents":[],"Functions":["Toggle"],"ErrorCount":1,"WarningCount":0,"Diagnostics":[{"Severity":"error","Code":"E0071","Message":"Function
+    ''Toggle'' is already defined","Line":15,"Column":1,"Hint":""}]}'

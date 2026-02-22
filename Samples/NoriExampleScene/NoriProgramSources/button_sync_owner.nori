@@ -1,0 +1,31 @@
+/*
+ * Button Sync Owner — Synced click counter (owner only)
+ *
+ * Attach to a UI Button via its OnClick event (set to "OnClick").
+ * Only the current owner of this object can increment the counter.
+ * Non-owners who click are silently ignored. Transfer ownership
+ * through other means if needed.
+ *
+ * Features shown: sync none, Networking.IsOwner(), localPlayer,
+ *                 RequestSerialization(), on VariableChange, UI.Text
+ */
+
+/// Text element to display the click count
+pub let ui_text: UI.Text
+
+// Synced click counter — replicated to all players
+sync none click_count: int = 0
+
+// OnClick is a custom event called by UI Button.onClick
+fn OnClick() {
+    if Networking.IsOwner(localPlayer, gameObject) {
+        // Only the owner can increment
+        click_count += 1
+        RequestSerialization()
+    }
+}
+
+on VariableChange {
+    // Update the UI text whenever click_count changes from the network
+    ui_text.text = click_count.ToString()
+}

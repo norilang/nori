@@ -1,0 +1,17 @@
+/*
+ * Toggle Game Object — Flip a target's active state
+ *
+ * Assign a GameObject to 'target_game_object' in the inspector.
+ * Call the Toggle event (e.g. from a SendEventOnInteract) to
+ * flip it between active and inactive.
+ *
+ * Features shown: pub let, fn, activeSelf, SetActive(), negation (!)
+ */
+
+/// The object to toggle on and off
+pub let target_game_object: GameObject
+
+// Called as a custom event from another UdonBehaviour
+fn Toggle() {
+    target_game_object.SetActive(!target_game_object.activeSelf)
+}

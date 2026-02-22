@@ -1,0 +1,68 @@
+/*
+ * Avatar Scaling Settings — Controls avatar scaling limits
+ *
+ * Place this on any GameObject in the scene. On Start, it
+ * either disables avatar scaling entirely or sets minimum
+ * and maximum eye height limits. When alwaysEnforceHeight is
+ * enabled, it also clamps the player's avatar height whenever
+ * it changes via the OnAvatarEyeHeightChanged event.
+ *
+ * Features shown: on Start, AvatarEyeHeightChanged event,
+ *                 SetManualAvatarScalingAllowed,
+ *                 SetAvatarEyeHeightMinimumByMeters,
+ *                 SetAvatarEyeHeightMaximumByMeters,
+ *                 GetAvatarEyeHeightAsMeters,
+ *                 SetAvatarEyeHeightByMeters, Mathf.Clamp,
+ *                 Networking.LocalPlayer, VRCPlayerApi.IsValid,
+ *                 VRCPlayerApi.isLocal, Debug.Log
+ */
+
+/// When true, completely disables manual avatar scaling
+pub let disable_avatar_scaling: bool = false
+
+/// Minimum allowed eye height in meters
+pub let minimum_height: float = 0.2
+
+/// Maximum allowed eye height in meters
+pub let maximum_height: float = 5.0
+
+/// When true, actively clamps height on every avatar change
+pub let always_enforce_height: bool = false
+
+let clamped_height: float = 0.0
+
+on Start {
+    let player: VRCPlayerApi = Networking.LocalPlayer
+    if !VRCPlayerApi.IsValid(player) {
+        return
+    }
+
+    if disable_avatar_scaling {
+        // Disable manual avatar scaling entirely
+        player.SetManualAvatarScalingAllowed(false)
+        log("[AvatarScalingSettings] Avatar scaling has been disabled. Players will be unable to choose their own avatar scale. Udon can still use SetAvatarEyeHeight.")
+    } else {
+        // Set the min/max eye height range
+        player.SetAvatarEyeHeightMinimumByMeters(minimum_height)
+        player.SetAvatarEyeHeightMaximumByMeters(maximum_height)
+        log(String.Format("[AvatarScalingSettings] Avatar eye height limits have been set to {0} to {1} meters.", minimum_height, maximum_height))
+    }
+}
+
+on AvatarEyeHeightChanged {
+    // Only enforce for the local player when the option is enabled
+    let player: VRCPlayerApi = localPlayer
+    if player.isLocal && always_enforce_height {
+        // Calculate the clamped height
+        let current_height: float = Networking.LocalPlayer.GetAvatarEyeHeightAsMeters()
+        clamped_height = Mathf.Clamp(current_height, minimum_height, maximum_height)
+
+        // Check if the current height differs from the clamped value
+        let actual_height: float = Networking.LocalPlayer.GetAvatarEyeHeightAsMeters()
+        if clamped_height != actual_height {
+            // Force the height to the clamped value
+            Networking.LocalPlayer.SetAvatarEyeHeightByMeters(clamped_height)
+            log(String.Format("[AvatarScalingSettings] Enforcing height limit. The local player's avatar eye height has been clamped to {0} meters.", clamped_height))
+        }
+    }
+}

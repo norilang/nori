@@ -408,6 +408,7 @@ namespace Nori.Compiler
         public List<Expr> Arguments { get; }
         public ExternSignature ResolvedExtern { get; set; }
         public bool IsBuiltinCall { get; set; }
+        public bool IsConstructorCall { get; set; }
         public string ResolvedFunctionName { get; set; }
         public List<ImplicitConversion> ImplicitConversions { get; set; } // per-arg conversions (null entries = no conversion)
 
@@ -422,6 +423,7 @@ namespace Nori.Compiler
     {
         public Expr Object { get; }
         public Expr Index { get; }
+        public bool IsArrayConstruction { get; set; } // Type[size] array creation
 
         public IndexExpr(Expr obj, Expr index, SourceSpan span) : base(span)
         {
@@ -437,6 +439,18 @@ namespace Nori.Compiler
         public ArrayLiteralExpr(List<Expr> elements, SourceSpan span) : base(span)
         {
             Elements = elements;
+        }
+    }
+
+    public class CastExpr : Expr
+    {
+        public Expr Operand { get; }
+        public string TargetTypeName { get; }
+
+        public CastExpr(Expr operand, string targetTypeName, SourceSpan span) : base(span)
+        {
+            Operand = operand;
+            TargetTypeName = targetTypeName;
         }
     }
 }

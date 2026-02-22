@@ -172,11 +172,19 @@ namespace Nori.Compiler
             Expect(TokenKind.Colon, "':'");
             if (Current.Kind == TokenKind.Eof) throw new ParseException();
 
-            // Parse type (including array types like int[])
+            // Parse type (including array types like int[] and dotted types like UI.Text)
             var typeToken = Expect(TokenKind.Identifier, "type name");
             if (typeToken.Kind != TokenKind.Identifier)
                 throw new ParseException();
             string typeName = typeToken.Text;
+
+            // Support dotted type names: UI.Text, UI.Slider, etc.
+            while (Check(TokenKind.Dot) && PeekAt(1).Kind == TokenKind.Identifier)
+            {
+                Advance(); // consume '.'
+                var nextPart = Advance(); // consume identifier
+                typeName += "." + nextPart.Text;
+            }
 
             bool isArray = false;
             if (Check(TokenKind.LeftBracket) && PeekAt(1).Kind == TokenKind.RightBracket)
@@ -260,7 +268,16 @@ namespace Nori.Compiler
             {
                 var retTypeToken = Expect(TokenKind.Identifier, "return type");
                 if (retTypeToken.Kind == TokenKind.Identifier)
+                {
                     returnType = retTypeToken.Text;
+                    // Support dotted type names in return types
+                    while (Check(TokenKind.Dot) && PeekAt(1).Kind == TokenKind.Identifier)
+                    {
+                        Advance(); // consume '.'
+                        var nextPart = Advance(); // consume identifier
+                        returnType += "." + nextPart.Text;
+                    }
+                }
             }
 
             var body = ParseBlock();
@@ -280,8 +297,19 @@ namespace Nori.Compiler
             if (typeToken.Kind != TokenKind.Identifier)
                 throw new ParseException();
 
-            return new ParamDecl(nameToken.Text, typeToken.Text,
-                nameToken.Span.Merge(typeToken.Span));
+            string typeName = typeToken.Text;
+            var lastToken = typeToken;
+
+            // Support dotted type names: UI.Text, UI.Slider, etc.
+            while (Check(TokenKind.Dot) && PeekAt(1).Kind == TokenKind.Identifier)
+            {
+                Advance(); // consume '.'
+                lastToken = Advance(); // consume identifier
+                typeName += "." + lastToken.Text;
+            }
+
+            return new ParamDecl(nameToken.Text, typeName,
+                nameToken.Span.Merge(lastToken.Span));
         }
 
         // --- Blocks & Statements ---
@@ -346,6 +374,14 @@ namespace Nori.Compiler
             if (typeToken.Kind != TokenKind.Identifier)
                 throw new ParseException();
             string typeName = typeToken.Text;
+
+            // Support dotted type names: UI.Text, UI.Slider, etc.
+            while (Check(TokenKind.Dot) && PeekAt(1).Kind == TokenKind.Identifier)
+            {
+                Advance(); // consume '.'
+                var nextPart = Advance(); // consume identifier
+                typeName += "." + nextPart.Text;
+            }
 
             bool isArray = false;
             if (Check(TokenKind.LeftBracket) && PeekAt(1).Kind == TokenKind.RightBracket)
@@ -541,6 +577,16 @@ namespace Nori.Compiler
                 var right = ParseAddition();
                 left = new BinaryExpr(left, op.Kind, right, left.Span.Merge(right.Span));
             }
+
+            // 'as' cast: expr as Type
+            if (Current.Kind == TokenKind.Identifier && Current.Text == "as")
+            {
+                Advance(); // consume 'as'
+                var typeToken = Expect(TokenKind.Identifier, "type name");
+                if (typeToken.Kind == TokenKind.Identifier)
+                    left = new CastExpr(left, typeToken.Text, left.Span.Merge(typeToken.Span));
+            }
+
             return left;
         }
 
@@ -610,10 +656,34 @@ namespace Nori.Compiler
                 }
                 else if (Check(TokenKind.LeftBracket))
                 {
-                    Advance(); // consume '['
-                    var index = ParseExpression();
-                    var closeBracket = Expect(TokenKind.RightBracket, "']'");
-                    expr = new IndexExpr(expr, index, expr.Span.Merge(closeBracket.Span));
+                    // Check for empty brackets: Type[](...) — array construction with size
+                    if (PeekAt(1).Kind == TokenKind.RightBracket)
+                    {
+                        Advance(); // consume '['
+                        var closeBracket = Advance(); // consume ']'
+                        // Expect (size) call syntax after []
+                        if (Check(TokenKind.LeftParen))
+                        {
+                            Advance(); // consume '('
+                            var sizeExpr = ParseExpression();
+                            var closeParen = Expect(TokenKind.RightParen, "')'");
+                            // Represent as IndexExpr with the size expression (same as Type[size])
+                            expr = new IndexExpr(expr, sizeExpr, expr.Span.Merge(closeParen.Span));
+                        }
+                        else
+                        {
+                            // Bare Type[] without call — treat as a type reference (shouldn't happen in expr context)
+                            _diagnostics.ReportExpectedExpression(Current);
+                            throw new ParseException();
+                        }
+                    }
+                    else
+                    {
+                        Advance(); // consume '['
+                        var index = ParseExpression();
+                        var closeBracket = Expect(TokenKind.RightBracket, "']'");
+                        expr = new IndexExpr(expr, index, expr.Span.Merge(closeBracket.Span));
+                    }
                 }
                 else
                 {

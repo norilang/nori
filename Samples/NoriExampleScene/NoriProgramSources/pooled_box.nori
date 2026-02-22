@@ -1,0 +1,45 @@
+/*
+ * Pooled Box — Returnable object from a VRCObjectPool
+ *
+ * Attach to each pooled object. On interact, the owner
+ * returns the object to the pool. Non-owners send a
+ * network event to the owner to do it. On enable, the
+ * object respawns to its original position via VRCObjectSync.
+ *
+ * Features shown: pub let, on Start, on Interact, on Enable,
+ *                 event, send to Owner, Networking.IsOwner(),
+ *                 VRCObjectPool.Return(), VRCObjectSync.Respawn(),
+ *                 GetComponent(), IsValid()
+ */
+
+/// Reference to the pool this object belongs to
+pub let pool: VRCObjectPool
+
+let object_sync: VRCObjectSync = null
+
+on Start {
+    // Cache the VRCObjectSync component for respawning
+    object_sync = gameObject.GetComponent(VRCObjectSync)
+}
+
+on Enable {
+    // Respawn to original position when re-enabled by the pool
+    if IsValid(object_sync) {
+        object_sync.Respawn()
+    }
+}
+
+on Interact {
+    if Networking.IsOwner(localPlayer, gameObject) {
+        // Owner can return directly
+        pool.Return(gameObject)
+    } else {
+        // Non-owner asks the owner to return it
+        send ReturnObject to Owner
+    }
+}
+
+// Owner-only: return this object to the pool
+event ReturnObject {
+    pool.Return(gameObject)
+}

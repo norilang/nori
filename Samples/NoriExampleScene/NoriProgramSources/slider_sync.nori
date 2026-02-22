@@ -1,0 +1,39 @@
+/*
+ * Slider Sync — Synced UI slider
+ *
+ * Attach to a UI Slider via its OnValueChanged event (set to "OnValueChanged").
+ * When a player moves the slider, the script checks if the value
+ * actually changed, takes ownership, and syncs the new value.
+ * Remote players see both the slider position and a text label
+ * update via on VariableChange.
+ *
+ * Features shown: sync none, UI.Slider, UI.Text, Networking.SetOwner(),
+ *                 RequestSerialization(), on VariableChange, localPlayer
+ */
+
+/// The UI Slider to sync across the network
+pub let ui_slider: UI.Slider
+
+/// Text element to display the slider value
+pub let ui_text: UI.Text
+
+// Synced slider value — replicated to all players
+sync none slider_value: float = 0.0
+
+// OnValueChanged is a custom event called by UI Slider.onValueChanged
+fn OnValueChanged() {
+    // Only sync if the value actually changed
+    let new_value: float = ui_slider.value
+    if new_value != slider_value {
+        // Take ownership and sync the new value
+        Networking.SetOwner(localPlayer, gameObject)
+        slider_value = new_value
+        RequestSerialization()
+    }
+}
+
+on VariableChange {
+    // Update the text label and slider position from network
+    ui_text.text = slider_value.ToString()
+    ui_slider.value = slider_value
+}

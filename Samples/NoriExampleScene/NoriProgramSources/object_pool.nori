@@ -1,0 +1,36 @@
+/*
+ * Object Pool — Timed object spawner using VRCObjectPool
+ *
+ * Spawns objects from a VRCObjectPool at a fixed rate.
+ * Only the owner spawns objects. Uses realtime clock to
+ * throttle spawning.
+ *
+ * Features shown: pub let, on Start, on Update,
+ *                 VRCObjectPool.TryToSpawn(), Networking.IsOwner(),
+ *                 Time.realtimeSinceStartup, boolean logic
+ */
+
+/// Reference to the VRCObjectPool component
+pub let pool: VRCObjectPool
+
+/// Seconds between each spawn attempt
+pub let spawn_rate: float = 5.0
+
+let last_spawn_time: float = 0.0
+
+on Start {
+    // Initialize to minimum value so first spawn is immediate
+    last_spawn_time = -999999.0
+}
+
+on Update {
+    let now: float = Time.realtimeSinceStartup
+    let elapsed: float = now - last_spawn_time
+    let time_ok: bool = elapsed > spawn_rate
+    let is_owner: bool = Networking.IsOwner(localPlayer, gameObject)
+
+    if time_ok && is_owner {
+        last_spawn_time = now
+        pool.TryToSpawn()
+    }
+}

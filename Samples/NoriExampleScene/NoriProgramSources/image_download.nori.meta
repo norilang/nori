@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 2df0faa41a67120419434ab14e3ad7a8
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"material","TypeName":"Material","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Material
+    to apply the downloaded texture to"},{"Name":"vrc_url","TypeName":"VRCUrl","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"URL
+    of the image to download"},{"Name":"texture_info","TypeName":"TextureInfo","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Texture
+    settings for the downloaded image"}],"SyncVars":[],"Events":["Start","ImageLoadError","ImageLoadSuccess","Destroy"],"CustomEvents":[],"Functions":[],"ErrorCount":4,"WarningCount":0,"Diagnostics":[{"Severity":"error","Code":"E0040","Message":"Unknown
+    type ''TextureInfo''","Line":22,"Column":5,"Hint":""},{"Severity":"error","Code":"E0040","Message":"Unknown
+    type ''VRCImageDownloader''","Line":24,"Column":1,"Hint":""},{"Severity":"error","Code":"E0070","Message":"Undefined
+    variable ''result''","Line":33,"Column":29,"Hint":""},{"Severity":"error","Code":"E0070","Message":"Undefined
+    variable ''result''","Line":34,"Column":43,"Hint":""}]}'

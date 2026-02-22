@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 15d956a66433719479960713edbaf10f
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"ui_slider","TypeName":"UI.Slider","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"The
+    UI Slider to sync across the network"},{"Name":"ui_text","TypeName":"UI.Text","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Text
+    element to display the slider value"}],"SyncVars":[{"Name":"slider_value","TypeName":"float","IsArray":false,"DefaultValue":"","SyncMode":"none","DocComment":""}],"Events":["VariableChange"],"CustomEvents":[],"Functions":["OnValueChanged"],"ErrorCount":2,"WarningCount":0,"Diagnostics":[{"Severity":"error","Code":"E0040","Message":"Unknown
+    type ''UI.Slider''","Line":15,"Column":5,"Hint":""},{"Severity":"error","Code":"E0040","Message":"Unknown
+    type ''UI.Text''","Line":18,"Column":5,"Hint":""}]}'

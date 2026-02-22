@@ -1,0 +1,45 @@
+/*
+ * Image Download — Download an image from a URL onto a material
+ *
+ * On start, creates a VRCImageDownloader and downloads an image
+ * from the specified URL, applying it to the given material.
+ * Logs success or error messages. Disposes of the downloader
+ * on destroy.
+ *
+ * Features shown: pub let, on Start, on Destroy,
+ *                 VRCImageDownloader, DownloadImage(),
+ *                 ImageLoadSuccess, ImageLoadError,
+ *                 VRCUrl, Material, TextureInfo, log()
+ */
+
+/// Material to apply the downloaded texture to
+pub let material: Material
+
+/// URL of the image to download
+pub let vrc_url: VRCUrl
+
+/// Texture settings for the downloaded image
+pub let texture_info: TextureInfo
+
+let image_downloader: VRCImageDownloader = null
+
+on Start {
+    // Create a new downloader and start the download
+    image_downloader = VRCImageDownloader()
+    image_downloader.DownloadImage(vrc_url, material, texture_info)
+}
+
+on ImageLoadError {
+    let error_str: string = result.Error.ToString()
+    let msg: string = error_str + " : " + result.ErrorMessage
+    log(msg)
+}
+
+on ImageLoadSuccess {
+    log("Success")
+}
+
+on Destroy {
+    // Clean up the downloader
+    image_downloader.Dispose()
+}

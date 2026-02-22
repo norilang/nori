@@ -1,0 +1,30 @@
+/*
+ * Download String — Fetch text from a URL and display it
+ *
+ * On start, downloads a string from the specified URL and
+ * shows the result in a UI Text field. Logs errors with
+ * the error message and code on failure.
+ *
+ * Features shown: pub let, on Start, VRCStringDownloader.LoadUrl(),
+ *                 StringLoadSuccess, StringLoadError,
+ *                 VRCUrl, UI.Text, string concatenation, log()
+ */
+
+/// The URL to download a string from
+pub let url: VRCUrl
+
+/// Text field to display the downloaded string
+pub let text_field: UI.Text
+
+on Start {
+    VRCStringDownloader.LoadUrl(url)
+}
+
+on StringLoadSuccess {
+    text_field.text = result.Result
+}
+
+on StringLoadError {
+    let error_msg: string = result.Error + ", error code :" + result.ErrorCode
+    log(error_msg)
+}

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: cd12693e50c18fc49a52c8b57e5256d0
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"pool","TypeName":"VRCObjectPool","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Reference
+    to the VRCObjectPool component"},{"Name":"spawn_rate","TypeName":"float","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Seconds
+    between each spawn attempt"}],"SyncVars":[],"Events":["Start","Update"],"CustomEvents":[],"Functions":[],"ErrorCount":1,"WarningCount":0,"Diagnostics":[{"Severity":"error","Code":"E0040","Message":"Unknown
+    type ''VRCObjectPool''","Line":14,"Column":5,"Hint":""}]}'

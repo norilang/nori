@@ -396,6 +396,157 @@ fn add_items() {
                 "Function loop body should use the renamed loop variable");
         }
 
+        [Test]
+        public void DottedTypeName_UIText_Compiles()
+        {
+            var source = @"
+pub let label: UI.Text
+
+on Start {
+    label.text = ""hello""
+}
+";
+            var result = NoriCompiler.Compile(source, "test.nori");
+            Assert.IsTrue(result.Success, FormatErrors(result));
+            Assert.That(result.Uasm, Does.Contain("UnityEngineUIText"));
+        }
+
+        [Test]
+        public void AsCast_IntToFloat_Compiles()
+        {
+            var source = @"
+let x: int = 5
+let y: float = 0.0
+
+on Start {
+    y = x as float
+}
+";
+            var result = NoriCompiler.Compile(source, "test.nori");
+            Assert.IsTrue(result.Success, FormatErrors(result));
+            Assert.That(result.Uasm, Does.Contain("SystemConvert"));
+        }
+
+        [Test]
+        public void PlayerTriggerEnter_Event_Compiles()
+        {
+            var source = @"
+on PlayerTriggerEnter(player: VRCPlayerApi) {
+    log(""player entered"")
+}
+";
+            var result = NoriCompiler.Compile(source, "test.nori");
+            Assert.IsTrue(result.Success, FormatErrors(result));
+            Assert.That(result.Uasm, Does.Contain("_onPlayerTriggerEnter:"));
+        }
+
+        [Test]
+        public void OwnershipTransferred_Event_Compiles()
+        {
+            var source = @"
+on OwnershipTransferred {
+    log(""ownership transferred"")
+}
+";
+            var result = NoriCompiler.Compile(source, "test.nori");
+            Assert.IsTrue(result.Success, FormatErrors(result));
+            Assert.That(result.Uasm, Does.Contain("_onOwnershipTransferred:"));
+        }
+
+        [Test]
+        public void Deserialization_Event_Compiles()
+        {
+            var source = @"
+sync none val: int = 0
+
+on Deserialization {
+    log(""deserialized"")
+}
+";
+            var result = NoriCompiler.Compile(source, "test.nori");
+            Assert.IsTrue(result.Success, FormatErrors(result));
+            Assert.That(result.Uasm, Does.Contain("_onDeserialization:"));
+        }
+
+        [Test]
+        public void SendToOwner_WithFunction_Compiles()
+        {
+            var source = @"
+sync none count: int = 0
+
+fn DoWork() {
+    count = count + 1
+    RequestSerialization()
+}
+
+on Interact {
+    if Networking.IsOwner(localPlayer, gameObject) {
+        count = count + 1
+        RequestSerialization()
+    } else {
+        send DoWork to Owner
+    }
+}
+";
+            var result = NoriCompiler.Compile(source, "test.nori");
+            Assert.IsTrue(result.Success, FormatErrors(result));
+            Assert.That(result.Uasm, Does.Contain(".export DoWork"));
+        }
+
+        [Test]
+        public void IsValid_Builtin_Compiles()
+        {
+            var source = @"
+pub let target: GameObject
+
+on Start {
+    if IsValid(target) {
+        log(""target is valid"")
+    }
+}
+";
+            var result = NoriCompiler.Compile(source, "test.nori");
+            Assert.IsTrue(result.Success, FormatErrors(result));
+            Assert.That(result.Uasm, Does.Contain("VRCSDKBaseUtilities.__IsValid__UnityEngineObject__SystemBoolean"));
+        }
+
+        [Test]
+        public void MathfSinCos_Compiles()
+        {
+            var source = @"
+let angle: float = 0.0
+let s: float = 0.0
+let c: float = 0.0
+
+on Start {
+    s = Mathf.Sin(angle)
+    c = Mathf.Cos(angle)
+}
+";
+            var result = NoriCompiler.Compile(source, "test.nori");
+            Assert.IsTrue(result.Success, FormatErrors(result));
+            Assert.That(result.Uasm, Does.Contain("UnityEngineMathf.__Sin__SystemSingle__SystemSingle"));
+            Assert.That(result.Uasm, Does.Contain("UnityEngineMathf.__Cos__SystemSingle__SystemSingle"));
+        }
+
+        [Test]
+        public void GetComponent_WithTypeArg_Compiles()
+        {
+            var source = @"
+pub let target: GameObject
+on Start {
+    let renderer: MeshRenderer = target.GetComponent(MeshRenderer)
+    log(""got component"")
+}";
+            var result = NoriCompiler.Compile(source, "test.nori");
+            Assert.IsTrue(result.Success, FormatErrors(result));
+            // GetComponent uses SystemString overload (Udon can't init SystemType in data section)
+            Assert.That(result.Uasm, Does.Contain("SystemString"));
+            Assert.That(result.Uasm, Does.Contain("GetComponent__SystemString__UnityEngineComponent"));
+            // Verify the data section has the CLR type name as a string
+            Assert.That(result.Uasm, Does.Contain("UnityEngine.MeshRenderer"));
+        }
+
         private string ExtractSection(string uasm, string startMarker, string endMarker)
         {
             int start = uasm.IndexOf(startMarker);

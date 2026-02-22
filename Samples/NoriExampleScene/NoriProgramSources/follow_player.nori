@@ -1,0 +1,41 @@
+/*
+ * Follow Player — Smoothly follows the local player's head position
+ *
+ * Attach to a Transform that should track the local player.
+ * The target Transform smoothly lerps toward the player's
+ * head tracking position each frame using LateUpdate.
+ * Only the X and Z components of the head position are used
+ * so the object stays on the ground plane.
+ *
+ * Features shown: LateUpdate, Networking.LocalPlayer,
+ *                 VRCPlayerApi.GetTrackingData(), Vector3.Lerp(),
+ *                 Vector3 constructor, Time.deltaTime,
+ *                 transform.position (get/set)
+ */
+
+/// Transform to move (defaults to this object's transform)
+pub let target: Transform
+
+/// Smoothing factor (lower = smoother, higher = snappier)
+pub let smooth_position: float = 0.1
+
+on LateUpdate {
+    let player: VRCPlayerApi = Networking.LocalPlayer
+    if player == null {
+        return
+    }
+
+    let current_pos: Vector3 = target.position
+
+    // Get the player's head tracking position
+    let tracking: TrackingData = player.GetTrackingData(TrackingDataType.Head)
+    let head_pos: Vector3 = tracking.position
+
+    // Build a ground-plane position from head X/Z (keep current Y implicit via lerp)
+    let target_pos: Vector3 = Vector3(head_pos.x, 0.0, head_pos.z)
+
+    // Smooth interpolation toward the target
+    let t: float = Time.deltaTime * smooth_position
+    let new_pos: Vector3 = Vector3.Lerp(current_pos, target_pos, t)
+    target.position = new_pos
+}

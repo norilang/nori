@@ -1,0 +1,130 @@
+/*
+ * Simple Pen — Networked drawing pen with pooled line strokes
+ *
+ * Attach to a VRC_Pickup object with a pen tip Transform child.
+ * When the player picks up the pen and holds the use button,
+ * it draws line segments using a pool of LineRenderer objects.
+ * Each stroke is assigned to a PenLine UdonBehaviour for syncing.
+ * The pen cycles through the line pool, reusing lines when
+ * the pool is exhausted.
+ *
+ * Setup: Create child GameObjects under lines_container, each with
+ * a LineRenderer and a PenLine UdonBehaviour. Set pen_tip to the
+ * Transform at the tip of the pen model.
+ *
+ * Features shown: Pickup, PickupUseDown, PickupUseUp, Update,
+ *                 LineRenderer, GetComponentsInChildren,
+ *                 Networking.SetOwner, object pooling,
+ *                 sync none, SendCustomEvent
+ */
+
+/// Minimum distance the pen must move before adding a new point
+pub let min_move_distance: float
+
+/// Transform at the tip of the pen for tracking position
+pub let pen_tip: Transform
+
+/// Number of points per sync update (controls sync frequency)
+pub let points_per_update: int
+
+/// Parent Transform containing all pooled line GameObjects
+pub let lines_container: Transform
+
+/// Index of the next line to use from the pool (synced)
+sync none next_line_index: int
+
+let line: UdonBehaviour
+let is_drawing: bool = false
+let start_position: Vector3
+let line_renderer: LineRenderer
+let current_index: int = 0
+let line_pool: LineRenderer[]
+
+on Start {
+    // Gather all LineRenderer components from the lines container's children
+    line_pool = lines_container.GetComponentsInChildren(LineRenderer)
+}
+
+on PickupUseDown {
+    // Get the next available line renderer from the pool
+    line_renderer = line_pool[next_line_index]
+
+    // Get the PenLine UdonBehaviour on the same object
+    line = line_renderer.GetComponent(UdonBehaviour)
+
+    // Take ownership of the line's GameObject so we can modify it
+    let local_player: VRCPlayerApi = Networking.LocalPlayer
+    let line_obj: GameObject = line_renderer.gameObject
+    Networking.SetOwner(local_player, line_obj)
+
+    // Activate the line GameObject
+    line_obj.SetActive(true)
+
+    // Advance the pool index, wrapping around if at the end
+    let next: int = next_line_index + 1
+    if next >= line_pool.Length {
+        next_line_index = 0
+    } else {
+        next_line_index = next
+    }
+
+    // Start drawing
+    is_drawing = true
+
+    // Reset the line renderer to zero points
+    line_renderer.positionCount = 0
+
+    // Record the starting position from pen tip
+    start_position = pen_tip.position
+
+    // Reset point counter
+    current_index = 0
+
+    // Initialize all positions to the current pen tip position
+    let i: int = 0
+    while i < current_index {
+        line_renderer.SetPosition(i, pen_tip.position)
+        i = i + 1
+    }
+}
+
+on PickupUseUp {
+    // Stop drawing
+    is_drawing = false
+
+    // Tell the PenLine to finalize the stroke
+    line.SendCustomEvent("OnFinish")
+}
+
+on Update {
+    if is_drawing {
+        // Check if the pen has moved far enough to add a new point
+        let tip_pos: Vector3 = pen_tip.position
+        let dist: float = Vector3.Distance(tip_pos, start_position)
+
+        if dist > min_move_distance {
+            // Extend the line by one point
+            let new_count: int = current_index + 1
+            line_renderer.positionCount = new_count
+
+            // Set the new point position at the pen tip
+            line_renderer.SetPosition(current_index, pen_tip.position)
+
+            // Update the start position for next distance check
+            start_position = pen_tip.position
+
+            // Advance the point index
+            current_index = current_index + 1
+
+            // Periodically sync the line data to other players
+            if current_index % points_per_update == 0 {
+                line.SendCustomEvent("OnUpdate")
+            }
+        }
+    }
+}
+
+on OwnershipRequest {
+    // Allow all ownership transfers
+    return true
+}

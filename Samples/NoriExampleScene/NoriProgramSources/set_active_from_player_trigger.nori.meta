@@ -1,0 +1,12 @@
+fileFormatVersion: 2
+guid: 59f5be27fac32354e9152da70cfe1ec5
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"target","TypeName":"GameObject","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"The
+    object to show/hide when players enter/exit"}],"SyncVars":[],"Events":["PlayerTriggerExit","PlayerTriggerEnter"],"CustomEvents":[],"Functions":[],"ErrorCount":0,"WarningCount":0,"Diagnostics":[]}'

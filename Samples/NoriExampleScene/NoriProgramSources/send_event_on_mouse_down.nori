@@ -1,0 +1,19 @@
+/*
+ * Send Event On Mouse Down — Forward an event when mouse-clicked
+ *
+ * When the mouse is pressed down on this object, it sends a custom
+ * event to the specified target. Set 'target' and 'event_name' in
+ * the inspector.
+ *
+ * Features shown: pub let, UdonBehaviour, SendCustomEvent
+ */
+
+/// The name of the custom event to send
+pub let event_name: string
+
+/// The UdonBehaviour to send the event to
+pub let target: UdonBehaviour
+
+on MouseDown {
+    target.SendCustomEvent(event_name)
+}

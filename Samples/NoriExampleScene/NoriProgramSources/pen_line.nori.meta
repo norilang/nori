@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: 2ad0edc4f84a10042a2a2a47b046fabc
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"line_renderer","TypeName":"LineRenderer","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"LineRenderer
+    component on this object"}],"SyncVars":[{"Name":"points","TypeName":"Vector3","IsArray":true,"DefaultValue":"","SyncMode":"none","DocComment":""}],"Events":["Deserialization","OwnershipRequest"],"CustomEvents":[],"Functions":["OnFinish","OnUpdate"],"ErrorCount":1,"WarningCount":0,"Diagnostics":[{"Severity":"error","Code":"E0030","Message":"Expected
+    expression, found '']''","Line":41,"Column":40,"Hint":""}]}'

@@ -1,0 +1,12 @@
+fileFormatVersion: 2
+guid: 54c414116e59fa344a3ea3a04ae4f6fd
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"cubes","TypeName":"GameObject","IsArray":true,"DefaultValue":"","SyncMode":"","DocComment":"Array
+    of cube GameObjects controlled by the synced data"}],"SyncVars":[{"Name":"data","TypeName":"bool","IsArray":true,"DefaultValue":"","SyncMode":"none","DocComment":""}],"Events":["Interact","Deserialization"],"CustomEvents":["Randomize"],"Functions":["update_cubes"],"ErrorCount":0,"WarningCount":0,"Diagnostics":[]}'

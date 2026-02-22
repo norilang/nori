@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 106369f0af6d494489c5e9d5a8342cfd
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"event_name","TypeName":"string","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"The
+    name of the custom event to send"},{"Name":"target","TypeName":"UdonBehaviour","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"The
+    UdonBehaviour to send the event to"}],"SyncVars":[],"Events":["MouseDown"],"CustomEvents":[],"Functions":[],"ErrorCount":1,"WarningCount":0,"Diagnostics":[{"Severity":"error","Code":"E0130","Message":"Method
+    ''SendCustomEvent'' not available on type ''UdonBehaviour''","Line":18,"Column":5,"Hint":""}]}'

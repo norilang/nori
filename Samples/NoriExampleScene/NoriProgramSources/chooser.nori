@@ -1,0 +1,66 @@
+/*
+ * Chooser — Cycle through scene objects with Next/Previous
+ *
+ * Assign an array of GameObjects and a label. Clicking Next
+ * or Previous switches the active object and updates the label
+ * with the current object's name. Synced via currentIndex.
+ *
+ * Features shown: pub let, sync none, event, send to Owner,
+ *                 modulo wrapping, on VariableChange, IsValid(),
+ *                 GameObject.SetActive(), .name, UI.Text
+ */
+
+/// Array of scene GameObjects to cycle through
+pub let objects: GameObject[]
+
+/// Text label showing the active object's name
+pub let active_scene_label: UI.Text
+
+/// Synced index of the currently active object
+sync none current_index: int = 0
+
+let last_index: int = 0
+
+// Public events called by UI buttons
+event Next {
+    send ONext to Owner
+}
+
+event Previous {
+    send OPrevious to Owner
+}
+
+// Owner-only: advance to next object (wraps around)
+event ONext {
+    current_index = (current_index + 1) % objects.Length
+    RequestSerialization()
+}
+
+// Owner-only: go to previous object (wraps around)
+event OPrevious {
+    let prev: int = current_index - 1
+    if prev < 0 {
+        current_index = objects.Length - 1
+    } else {
+        current_index = prev
+    }
+    RequestSerialization()
+}
+
+on VariableChange {
+    // Deactivate the old object if valid
+    if last_index >= 0 {
+        let old_obj: GameObject = objects[last_index]
+        if IsValid(old_obj) {
+            old_obj.SetActive(false)
+        }
+    }
+
+    // Update label with new object's name
+    let current_obj: GameObject = objects[current_index]
+    active_scene_label.text = current_obj.name
+
+    // Activate the new object
+    let new_obj: GameObject = objects[current_index]
+    new_obj.SetActive(true)
+}

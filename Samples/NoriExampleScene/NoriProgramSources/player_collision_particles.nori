@@ -1,0 +1,19 @@
+/*
+ * Player Collision Particles — Shows particle collision info
+ *
+ * Attach to a GameObject with a ParticleSystem. When particles
+ * from this system hit a player, the UI Text field shows the
+ * player's display name and the time of the collision.
+ *
+ * Features shown: PlayerParticleCollision event,
+ *                 VRCPlayerApi.displayName, Time.time, UI Text
+ */
+
+/// UI Text element to display collision info
+pub let text_field: UI.Text
+
+on PlayerParticleCollision(player: VRCPlayerApi) {
+    let name: string = player.displayName
+    let time: float = Time.time
+    text_field.text = String.Format("Particle Hit {0} at {1}", name, time)
+}

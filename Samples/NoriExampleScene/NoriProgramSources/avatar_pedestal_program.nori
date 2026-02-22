@@ -1,0 +1,22 @@
+/*
+ * Avatar Pedestal Program — Triggers avatar change on interact
+ *
+ * Attach to a GameObject with a VRCAvatarPedestal component.
+ * When the player interacts with the object, it gets the
+ * VRCAvatarPedestal component and calls SetAvatarUse to
+ * change the local player's avatar to the one configured
+ * on the pedestal's Blueprint ID.
+ *
+ * Features shown: on Interact, GameObject.GetComponent(),
+ *                 VRCAvatarPedestal.SetAvatarUse(),
+ *                 Networking.LocalPlayer
+ */
+
+on Interact {
+    // Get the VRCAvatarPedestal component from this GameObject
+    let pedestal: VRCAvatarPedestal = gameObject.GetComponent(VRCAvatarPedestal)
+    let player: VRCPlayerApi = Networking.LocalPlayer
+
+    // Change the local player's avatar to the pedestal's configured avatar
+    pedestal.SetAvatarUse(player)
+}

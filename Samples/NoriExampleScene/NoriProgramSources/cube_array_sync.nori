@@ -1,0 +1,42 @@
+/*
+ * Cube Array Sync — Networked randomized cube visibility
+ *
+ * On interact, the owner randomizes a boolean array that
+ * controls which cubes are shown or hidden. The data is
+ * synced to all players via RequestSerialization().
+ *
+ * Features shown: pub let, sync none, for loop, Random.value,
+ *                 SendCustomNetworkEvent(), RequestSerialization(),
+ *                 on Deserialization, event, GameObject.SetActive()
+ */
+
+/// Array of cube GameObjects controlled by the synced data
+pub let cubes: GameObject[]
+
+/// Boolean array synced across the network
+sync none data: bool[]
+
+on Interact {
+    // Only the owner triggers randomization
+    send Randomize to Owner
+}
+
+// Owner-only: randomize the data and push to network
+event Randomize {
+    for i in 0..data.Length {
+        data[i] = Random.value > 0.5
+    }
+
+    RequestSerialization()
+    update_cubes()
+}
+
+on Deserialization {
+    update_cubes()
+}
+
+fn update_cubes() {
+    for i in 0..cubes.Length {
+        cubes[i].SetActive(data[i])
+    }
+}

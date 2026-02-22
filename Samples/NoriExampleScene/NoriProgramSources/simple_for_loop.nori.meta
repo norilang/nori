@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 37be0ea8d1de15444a139996b2070f6c
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"text_field","TypeName":"Text","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"The
+    UI Text component to write loop output into"},{"Name":"number_of_loops","TypeName":"int","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"How
+    many times to loop"}],"SyncVars":[],"Events":[],"CustomEvents":[],"Functions":["runLoop"],"ErrorCount":1,"WarningCount":0,"Diagnostics":[{"Severity":"error","Code":"E0040","Message":"Operator
+    ''+'' cannot be applied to ''string'' and ''int''","Line":25,"Column":27,"Hint":""}]}'

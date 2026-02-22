@@ -1,0 +1,27 @@
+/*
+ * Simple For Loop — Append loop indices to a text field
+ *
+ * When the runLoop event is called, clears the text field and
+ * runs a for loop, concatenating each index number to the text.
+ * The number of iterations is configurable in the inspector.
+ *
+ * Features shown: pub let, fn, for i in 0..n, UI.Text,
+ *                 string concatenation, .text property
+ */
+
+/// The UI Text component to write loop output into
+pub let text_field: Text
+
+/// How many times to loop
+pub let number_of_loops: int
+
+// Called as a custom event (e.g. from SendEventOnMouseDown)
+fn runLoop() {
+    // Clear the text field
+    text_field.text = ""
+
+    // Loop from 0 up to numberOfLoops, appending each index
+    for i in 0..number_of_loops {
+        text_field.text = text_field.text + i
+    }
+}

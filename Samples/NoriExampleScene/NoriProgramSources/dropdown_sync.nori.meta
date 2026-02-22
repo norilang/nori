@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: 17c4dc38447f06e4586a68e95d9a34d7
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"ui_dropdown","TypeName":"UI.Dropdown","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"The
+    UI Dropdown to sync across the network"}],"SyncVars":[{"Name":"dropdown_value","TypeName":"int","IsArray":false,"DefaultValue":"","SyncMode":"none","DocComment":""}],"Events":["VariableChange"],"CustomEvents":[],"Functions":["OnValueChanged"],"ErrorCount":1,"WarningCount":0,"Diagnostics":[{"Severity":"error","Code":"E0040","Message":"Unknown
+    type ''UI.Dropdown''","Line":14,"Column":5,"Hint":""}]}'

@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: cdce324c181af0742b68b45e6ce9bcb7
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"disable_avatar_scaling","TypeName":"bool","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"When
+    true, completely disables manual avatar scaling"},{"Name":"minimum_height","TypeName":"float","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Minimum
+    allowed eye height in meters"},{"Name":"maximum_height","TypeName":"float","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Maximum
+    allowed eye height in meters"},{"Name":"always_enforce_height","TypeName":"bool","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"When
+    true, actively clamps height on every avatar change"}],"SyncVars":[],"Events":["Start","AvatarEyeHeightChanged"],"CustomEvents":[],"Functions":[],"ErrorCount":1,"WarningCount":0,"Diagnostics":[{"Severity":"error","Code":"E0130","Message":"Method
+    ''IsValid'' not available on type ''VRCPlayerApi''","Line":36,"Column":9,"Hint":""}]}'

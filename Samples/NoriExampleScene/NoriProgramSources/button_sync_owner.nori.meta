@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: 1059e5c13b811bb4db7e181aeac99eeb
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"ui_text","TypeName":"UI.Text","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Text
+    element to display the click count"}],"SyncVars":[{"Name":"click_count","TypeName":"int","IsArray":false,"DefaultValue":"","SyncMode":"none","DocComment":""}],"Events":["VariableChange"],"CustomEvents":[],"Functions":["OnClick"],"ErrorCount":1,"WarningCount":0,"Diagnostics":[{"Severity":"error","Code":"E0040","Message":"Unknown
+    type ''UI.Text''","Line":14,"Column":5,"Hint":""}]}'

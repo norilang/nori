@@ -49,6 +49,12 @@ namespace Nori.Compiler
         private readonly Dictionary<string, string> _varNameMap
             = new Dictionary<string, string>();
 
+        // Functions referenced in send statements that need exported wrappers
+        private readonly HashSet<string> _networkSentFunctions = new HashSet<string>();
+
+        // All declared function names (to distinguish functions from custom events in send)
+        private readonly HashSet<string> _declaredFunctions = new HashSet<string>();
+
         public IrLowering(ModuleDecl module, DiagnosticBag diagnostics,
             IExternCatalog catalog = null)
         {
@@ -90,6 +96,28 @@ namespace Nori.Compiler
                         LowerFunction(f);
                         break;
                 }
+            }
+
+            // Generate exported wrappers for functions referenced in network send statements.
+            // VRC's SendCustomNetworkEvent("DoWork") expects an exported "DoWork:" label,
+            // but functions are lowered as "__fn_DoWork:" (non-exported). The wrapper calls
+            // the function using the same JUMP_INDIRECT mechanism as LowerFunctionCall.
+            foreach (var funcName in _networkSentFunctions)
+            {
+                var wrapperBlock = new IrBlock(funcName, true);
+                _ir.Blocks.Add(wrapperBlock);
+                _currentBlock = wrapperBlock;
+
+                string retAddrVar = $"__retaddr_{funcName}";
+                string returnLabel = $"__send_ret_{funcName}";
+                string retAddrConst = GetOrCreateConstant("SystemUInt32", $"__label__{returnLabel}");
+                Emit(new IrCopy(retAddrConst, retAddrVar));
+                Emit(new IrJump($"__fn_{funcName}"));
+
+                var retBlock = new IrBlock(returnLabel);
+                _ir.Blocks.Add(retBlock);
+                _currentBlock = retBlock;
+                Emit(IrJump.Halt());
             }
 
             // Inject runtime init for top-level booleans defaulting to true.
@@ -216,6 +244,23 @@ namespace Nori.Compiler
             ["_inputMoveVertical"] = new[] { "floatValue" },
             ["_inputLookHorizontal"] = new[] { "floatValue" },
             ["_inputLookVertical"] = new[] { "floatValue" },
+            ["_onPlayerTriggerEnter"] = new[] { "player" },
+            ["_onPlayerTriggerExit"] = new[] { "player" },
+            ["_onPlayerCollisionEnter"] = new[] { "player" },
+            ["_onPlayerCollisionExit"] = new[] { "player" },
+            ["_onPlayerParticleCollision"] = new[] { "player" },
+            ["_onPlayerJoined"] = new[] { "player" },
+            ["_onPlayerLeft"] = new[] { "player" },
+        };
+
+        // Implicit event parameters that VRC passes via mangled heap vars
+        private static readonly Dictionary<string, (string paramName, string paramType)> ImplicitEventParams
+            = new Dictionary<string, (string, string)>
+        {
+            ["_onStringLoadSuccess"] = ("result", "VRCSDK3StringLoadingIVRCStringDownload"),
+            ["_onStringLoadError"] = ("result", "VRCSDK3StringLoadingIVRCStringDownload"),
+            ["_onImageLoadSuccess"] = ("result", "VRCSDK3ImageIVRCImageDownload"),
+            ["_onImageLoadError"] = ("result", "VRCSDK3ImageIVRCImageDownload"),
         };
 
         private void LowerEventHandler(EventHandlerDecl handler)
@@ -249,6 +294,17 @@ namespace Nori.Compiler
                 Emit(new IrCopy(mangledName, localVar));
             }
 
+            // Handle implicit event parameters (e.g., 'result' for download events)
+            if (ImplicitEventParams.TryGetValue(label, out var implicitParam))
+            {
+                string paramType = implicitParam.paramType;
+                string mangledName = $"{label.Substring(1)}{char.ToUpper(implicitParam.paramName[0])}{implicitParam.paramName.Substring(1)}";
+                DeclareHeapVar(mangledName, paramType);
+                string localVar = DeclareHeapVar(implicitParam.paramName, paramType);
+                _varNameMap[implicitParam.paramName] = localVar;
+                Emit(new IrCopy(mangledName, localVar));
+            }
+
             LowerBlock(handler.Body);
 
             // Events end with halt sentinel
@@ -272,6 +328,8 @@ namespace Nori.Compiler
 
         private void LowerFunction(FunctionDecl func)
         {
+            _declaredFunctions.Add(func.Name);
+
             // Declare function infrastructure vars
             string retAddrVar = DeclareHeapVar($"__retaddr_{func.Name}", "SystemUInt32", "0");
 
@@ -699,6 +757,9 @@ namespace Nori.Compiler
             }
             else
             {
+                // Track functions referenced via network send (they need exported wrappers)
+                if (_declaredFunctions.Contains(send.EventName))
+                    _networkSentFunctions.Add(send.EventName);
                 // Network send: SendCustomNetworkEvent
                 // Use SystemInt32 for the target enum value — VRC's text assembler can't
                 // resolve the enum type for data declarations, but the extern handles
@@ -775,6 +836,9 @@ namespace Nori.Compiler
                 case ArrayLiteralExpr arr:
                     return LowerArrayLiteral(arr);
 
+                case CastExpr cast:
+                    return LowerCast(cast);
+
                 default:
                     return AllocTemp("SystemObject");
             }
@@ -845,7 +909,16 @@ namespace Nori.Compiler
 
                 case SymbolKind.StaticType:
                 case SymbolKind.EnumType:
-                    // Static/enum types don't produce a runtime value; handled in member access
+                    // If this NameExpr is used as a call argument (type-as-value),
+                    // emit as SystemString with the CLR type name. Udon's assembler
+                    // can't initialize SystemType from a string in the data section,
+                    // but the string-based GetComponent overload works correctly.
+                    if (name.ResolvedType == "SystemType")
+                    {
+                        string udonType = name.ResolvedSymbol.UdonType;
+                        string clrName = _catalog.GetClrTypeName(udonType);
+                        return GetOrCreateConstant("SystemString", $"\"{clrName}\"");
+                    }
                     return AllocTemp(name.ResolvedSymbol.UdonType);
             }
 
@@ -867,16 +940,28 @@ namespace Nori.Compiler
 
             if (binary.ResolvedExtern == null) return AllocTemp("SystemObject");
 
-            // Apply left conversion if needed (e.g., int -> float)
+            // Apply left conversion if needed (e.g., int -> float, or non-string -> string via ToString)
             if (binary.LeftConversion != null)
             {
                 leftVar = EmitConversion(leftVar, binary.LeftConversion);
+            }
+            else if (binary.ResolvedExtern != null &&
+                     binary.ResolvedExtern.Contains("Concat") &&
+                     binary.Left.ResolvedType != "SystemString")
+            {
+                leftVar = EmitToString(leftVar);
             }
 
             // Apply right conversion if needed
             if (binary.RightConversion != null)
             {
                 rightVar = EmitConversion(rightVar, binary.RightConversion);
+            }
+            else if (binary.ResolvedExtern != null &&
+                     binary.ResolvedExtern.Contains("Concat") &&
+                     binary.Right.ResolvedType != "SystemString")
+            {
+                rightVar = EmitToString(rightVar);
             }
 
             // Arrays derive from System.Array, not UnityEngine.Object.
@@ -933,10 +1018,12 @@ namespace Nori.Compiler
 
         private string LowerMemberAccess(MemberExpr member)
         {
-            // Enum value access: create a typed constant
+            // Enum value access: store as SystemInt32 — Udon's assembler can't initialize
+            // enum-typed variables from integer values in the data section, but externs
+            // handle int→enum conversion at runtime.
             if (member.IsEnumValue)
             {
-                return GetOrCreateConstant(member.EnumUdonType, member.EnumIntValue.ToString());
+                return GetOrCreateConstant("SystemInt32", member.EnumIntValue.ToString());
             }
 
             // Static member access
@@ -993,7 +1080,42 @@ namespace Nori.Compiler
                         Emit(new IrExtern("VRCUdonCommonInterfacesIUdonEventReceiver.__RequestSerialization__SystemVoid"));
                         return GetOrCreateConstant("SystemObject", "null");
                     }
+                    case "IsValid":
+                    {
+                        string validArg = call.Arguments.Count > 0
+                            ? LowerExpr(call.Arguments[0])
+                            : GetOrCreateConstant("SystemObject", "null");
+                        string validResult = AllocTemp("SystemBoolean");
+                        Emit(new IrPush(validArg));
+                        Emit(new IrPush(validResult));
+                        Emit(new IrExtern("VRCSDKBaseUtilities.__IsValid__UnityEngineObject__SystemBoolean"));
+                        return validResult;
+                    }
+                    case "SendCustomEventDelayedSeconds":
+                    {
+                        Emit(new IrPush(_thisUdonBehaviour));
+                        string eventArg = call.Arguments.Count > 0
+                            ? LowerExpr(call.Arguments[0])
+                            : GetOrCreateConstant("SystemString", "\"\"");
+                        Emit(new IrPush(eventArg));
+                        string delayArg = call.Arguments.Count > 1
+                            ? LowerExpr(call.Arguments[1])
+                            : GetOrCreateConstant("SystemSingle", "0");
+                        Emit(new IrPush(delayArg));
+                        string timingArg = call.Arguments.Count > 2
+                            ? LowerExpr(call.Arguments[2])
+                            : GetOrCreateConstant("SystemInt32", "0");
+                        Emit(new IrPush(timingArg));
+                        Emit(new IrExtern("VRCUdonCommonInterfacesIUdonEventReceiver.__SendCustomEventDelayedSeconds__SystemString_SystemSingle_VRCUdonCommonEnumsEventTiming__SystemVoid"));
+                        return GetOrCreateConstant("SystemObject", "null");
+                    }
                 }
+            }
+
+            // Constructor calls: Color(...), Vector3(...), etc.
+            if (call.IsConstructorCall && call.ResolvedExtern != null)
+            {
+                return LowerConstructorCall(call);
             }
 
             // User function calls
@@ -1071,9 +1193,23 @@ namespace Nori.Compiler
             return GetOrCreateConstant("SystemObject", "null");
         }
 
+        // Methods that need 'this' UdonBehaviour auto-injected as an extra argument.
+        // Uses Contains-based matching to work with both BuiltinCatalog and FullCatalog extern names.
+        private static bool NeedsThisInjection(string externName)
+        {
+            return externName.Contains("__LoadUrl__") || externName.Contains("__DownloadImage__");
+        }
+
         private string LowerMethodCall(CallExpr call, MemberExpr memberExpr)
         {
             var sig = call.ResolvedExtern;
+
+            // Switch GetComponent/GetComponentsInChildren from SystemType to SystemString overload.
+            // Udon's assembler can't initialize SystemType constants in the data section,
+            // but the string-based overload works correctly.
+            string externName = sig.Extern;
+            if (externName.Contains("__SystemType__"))
+                externName = externName.Replace("__SystemType__", "__SystemString__");
 
             // For instance methods, push 'this' object first
             if (sig.IsInstance)
@@ -1083,6 +1219,7 @@ namespace Nori.Compiler
             }
 
             // Push arguments (with implicit conversions if needed)
+            bool needsThisInjection = NeedsThisInjection(externName);
             for (int i = 0; i < call.Arguments.Count; i++)
             {
                 string argVar = LowerExpr(call.Arguments[i]);
@@ -1096,6 +1233,17 @@ namespace Nori.Compiler
                 }
 
                 Emit(new IrPush(argVar));
+
+                // For LoadUrl: after first arg (VRCUrl), auto-inject this UdonBehaviour
+                // For DownloadImage: after second arg (Material), auto-inject this UdonBehaviour
+                if (needsThisInjection)
+                {
+                    bool injectAfterThis =
+                        (externName.Contains("LoadUrl") && i == 0) ||
+                        (externName.Contains("DownloadImage") && i == 1);
+                    if (injectAfterThis)
+                        Emit(new IrPush(_thisUdonBehaviour));
+                }
             }
 
             // Push result only for non-void returns
@@ -1104,27 +1252,109 @@ namespace Nori.Compiler
             {
                 string resultVar = AllocTemp(resultType);
                 Emit(new IrPush(resultVar));
-                Emit(new IrExtern(sig.Extern));
+                Emit(new IrExtern(externName));
                 return resultVar;
             }
 
-            Emit(new IrExtern(sig.Extern));
+            Emit(new IrExtern(externName));
             return GetOrCreateConstant("SystemObject", "null");
+        }
+
+        private string LowerCast(CastExpr cast)
+        {
+            string srcVar = LowerExpr(cast.Operand);
+            string targetType = cast.ResolvedType ?? TypeSystem.ResolveType(cast.TargetTypeName) ?? "SystemObject";
+            string srcType = cast.Operand.ResolvedType ?? "SystemObject";
+
+            // Try implicit conversion first
+            var conversion = _catalog.GetImplicitConversion(srcType, targetType);
+            if (conversion != null)
+                return EmitConversion(srcVar, conversion);
+
+            // Fallback: use SystemConvert for numeric types
+            string convertExtern = GetConvertExtern(srcType, targetType);
+            if (convertExtern != null)
+            {
+                string resultVar = AllocTemp(targetType);
+                Emit(new IrPush(srcVar));
+                Emit(new IrPush(resultVar));
+                Emit(new IrExtern(convertExtern));
+                return resultVar;
+            }
+
+            // No conversion available, just return source (may be a reference cast)
+            return srcVar;
+        }
+
+        private static string GetConvertExtern(string fromType, string toType)
+        {
+            // Map numeric conversions to SystemConvert externs
+            if (fromType == "SystemDouble" && toType == "SystemSingle")
+                return "SystemConvert.__ToSingle__SystemDouble__SystemSingle";
+            if (fromType == "SystemDouble" && toType == "SystemInt32")
+                return "SystemConvert.__ToInt32__SystemDouble__SystemInt32";
+            if (fromType == "SystemSingle" && toType == "SystemInt32")
+                return "SystemConvert.__ToInt32__SystemSingle__SystemInt32";
+            if (fromType == "SystemInt32" && toType == "SystemSingle")
+                return "SystemConvert.__ToSingle__SystemInt32__SystemSingle";
+            if (fromType == "SystemInt32" && toType == "SystemDouble")
+                return "SystemConvert.__ToDouble__SystemInt32__SystemDouble";
+            if (fromType == "SystemSingle" && toType == "SystemDouble")
+                return "SystemConvert.__ToDouble__SystemSingle__SystemDouble";
+            return null;
+        }
+
+        private string LowerConstructorCall(CallExpr call)
+        {
+            var sig = call.ResolvedExtern;
+
+            // Push arguments with implicit conversions
+            for (int i = 0; i < call.Arguments.Count; i++)
+            {
+                string argVar = LowerExpr(call.Arguments[i]);
+
+                if (call.ImplicitConversions != null &&
+                    i < call.ImplicitConversions.Count &&
+                    call.ImplicitConversions[i] != null)
+                {
+                    argVar = EmitConversion(argVar, call.ImplicitConversions[i]);
+                }
+
+                Emit(new IrPush(argVar));
+            }
+
+            string resultType = sig.ReturnType ?? call.ResolvedType ?? "SystemObject";
+            string resultVar = AllocTemp(resultType);
+            Emit(new IrPush(resultVar));
+            Emit(new IrExtern(sig.Extern));
+            return resultVar;
         }
 
         private string LowerIndex(IndexExpr index)
         {
-            string arrayVar = LowerExpr(index.Object);
+            // Array construction: Type[size] — e.g., VRCPlayerApi[8]
+            if (index.IsArrayConstruction)
+            {
+                string sizeVar = LowerExpr(index.Index);
+                string arrayType = index.ResolvedType ?? "SystemObjectArray";
+                string arrayVar = AllocTemp(arrayType);
+                Emit(new IrPush(sizeVar));
+                Emit(new IrPush(arrayVar));
+                Emit(new IrExtern($"{arrayType}.__ctor__SystemInt32__{arrayType}"));
+                return arrayVar;
+            }
+
+            string arrayVar2 = LowerExpr(index.Object);
             string indexVar = LowerExpr(index.Index);
 
-            string arrayType = index.Object.ResolvedType ?? "SystemObjectArray";
-            string elemType = arrayType.EndsWith("Array")
-                ? arrayType.Substring(0, arrayType.Length - 5) : "SystemObject";
+            string arrayType2 = index.Object.ResolvedType ?? "SystemObjectArray";
+            string elemType = arrayType2.EndsWith("Array")
+                ? arrayType2.Substring(0, arrayType2.Length - 5) : "SystemObject";
 
-            string getExtern = $"{arrayType}.__Get__SystemInt32__{elemType}";
+            string getExtern = $"{arrayType2}.__Get__SystemInt32__{elemType}";
             string resultVar = AllocTemp(elemType);
 
-            Emit(new IrPush(arrayVar));
+            Emit(new IrPush(arrayVar2));
             Emit(new IrPush(indexVar));
             Emit(new IrPush(resultVar));
             Emit(new IrExtern(getExtern));
@@ -1259,6 +1489,15 @@ namespace Nori.Compiler
         /// Emits an implicit conversion (e.g., int -> float via SystemConvert).
         /// Returns the name of the converted temp var.
         /// </summary>
+        private string EmitToString(string inputVar)
+        {
+            string strVar = AllocTemp("SystemString");
+            Emit(new IrPush(inputVar));
+            Emit(new IrPush(strVar));
+            Emit(new IrExtern("SystemObject.__ToString__SystemString"));
+            return strVar;
+        }
+
         private string EmitConversion(string inputVar, ImplicitConversion conversion)
         {
             string convertedVar = AllocTemp(conversion.ToType);

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: e37c7099ebae54c458fa9522b544dfd8
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"pool","TypeName":"VRCObjectPool","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Reference
+    to the pool this object belongs to"}],"SyncVars":[],"Events":["Start","Enable","Interact"],"CustomEvents":["ReturnObject"],"Functions":[],"ErrorCount":2,"WarningCount":0,"Diagnostics":[{"Severity":"error","Code":"E0040","Message":"Unknown
+    type ''VRCObjectPool''","Line":16,"Column":5,"Hint":""},{"Severity":"error","Code":"E0040","Message":"Unknown
+    type ''VRCObjectSync''","Line":18,"Column":1,"Hint":""}]}'

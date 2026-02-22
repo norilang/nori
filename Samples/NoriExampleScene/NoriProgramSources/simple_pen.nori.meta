@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: f8937eb5e29c1c34e8079dbf33c7a2d9
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"min_move_distance","TypeName":"float","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Minimum
+    distance the pen must move before adding a new point"},{"Name":"pen_tip","TypeName":"Transform","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Transform
+    at the tip of the pen for tracking position"},{"Name":"points_per_update","TypeName":"int","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Number
+    of points per sync update (controls sync frequency)"},{"Name":"lines_container","TypeName":"Transform","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Parent
+    Transform containing all pooled line GameObjects"}],"SyncVars":[{"Name":"next_line_index","TypeName":"int","IsArray":false,"DefaultValue":"","SyncMode":"none","DocComment":""}],"Events":["Start","PickupUseDown","PickupUseUp","Update","OwnershipRequest"],"CustomEvents":[],"Functions":[],"ErrorCount":2,"WarningCount":0,"Diagnostics":[{"Severity":"error","Code":"E0130","Message":"Method
+    ''SendCustomEvent'' not available on type ''UdonBehaviour''","Line":96,"Column":5,"Hint":""},{"Severity":"error","Code":"E0130","Message":"Method
+    ''SendCustomEvent'' not available on type ''UdonBehaviour''","Line":121,"Column":17,"Hint":""}]}'

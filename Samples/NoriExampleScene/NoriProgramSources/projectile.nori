@@ -1,0 +1,66 @@
+/*
+ * Projectile — Launches a rigidbody and resets on player collision
+ *
+ * Attach to a projectile GameObject with a Rigidbody and
+ * ConstantForce component. The Fire event resets the projectile
+ * to its original position, clears velocity, and enables the
+ * ConstantForce to propel it. When it collides with a player,
+ * the player name is shown, haptic feedback is triggered, and
+ * the projectile resets.
+ *
+ * Features shown: PlayerCollisionEnter, PlayerCollisionExit,
+ *                 custom Fire event, Rigidbody physics,
+ *                 ConstantForce, haptic feedback,
+ *                 Quaternion.identity, VRCPlayerApi.displayName
+ */
+
+/// UI Text element to display collision info
+pub let text_field: UI.Text
+
+/// Rigidbody of the projectile
+pub let rigidbody: Rigidbody
+
+/// ConstantForce component for propulsion
+pub let force: ConstantForce
+
+let original_position: Vector3
+
+on Start {
+    // Save the starting position for resets
+    original_position = rigidbody.position
+}
+
+on PlayerCollisionEnter(player: VRCPlayerApi) {
+    // Display the player's name
+    let name: string = player.displayName
+    text_field.text = String.Format("{0} Entered", name)
+
+    // Vibrate both controllers
+    player.PlayHapticEventInHand(PickupHand.Left, 0.25, 1.0, 1.0)
+    player.PlayHapticEventInHand(PickupHand.Right, 0.25, 1.0, 1.0)
+}
+
+on PlayerCollisionExit(player: VRCPlayerApi) {
+    // Display exit message
+    let name: string = player.displayName
+    text_field.text = String.Format("{0} Exited", name)
+
+    // Reset the projectile
+    rigidbody.position = original_position
+    rigidbody.rotation = Quaternion.identity
+    rigidbody.angularVelocity = Vector3.zero
+    rigidbody.velocity = Vector3.zero
+    force.enabled = false
+}
+
+// Custom event called by another UdonBehaviour to fire the projectile
+event Fire {
+    // Reset position and clear physics state
+    rigidbody.position = original_position
+    rigidbody.rotation = Quaternion.identity
+    rigidbody.angularVelocity = Vector3.zero
+    rigidbody.velocity = Vector3.zero
+
+    // Enable the constant force to propel the projectile
+    force.enabled = true
+}

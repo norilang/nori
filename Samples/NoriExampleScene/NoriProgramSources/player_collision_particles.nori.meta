@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: c179b2f5207d5dd4e98ec97bd65c7ea2
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"text_field","TypeName":"UI.Text","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"UI
+    Text element to display collision info"}],"SyncVars":[],"Events":["PlayerParticleCollision"],"CustomEvents":[],"Functions":[],"ErrorCount":1,"WarningCount":0,"Diagnostics":[{"Severity":"error","Code":"E0040","Message":"Unknown
+    type ''UI.Text''","Line":13,"Column":5,"Hint":""}]}'

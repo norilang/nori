@@ -1,0 +1,40 @@
+/*
+ * Get Players Text — Display player names in text fields
+ *
+ * On interact, fills an array of UI Text fields with the
+ * display names of current players. Empty slots show a
+ * placeholder with the slot index.
+ *
+ * Features shown: pub let, on Start, on Interact, for loop,
+ *                 VRCPlayerApi.GetPlayers(), IsValid(),
+ *                 array access, UI.Text, displayName
+ */
+
+/// Maximum number of player slots to display
+pub let max_players: int = 8
+
+/// Array of UI Text fields, one per player slot
+pub let player_fields: UI.Text[]
+
+let players: VRCPlayerApi[] = null
+
+on Start {
+    // Pre-allocate the players array based on max_players
+    players = VRCPlayerApi.GetPlayers(players)
+}
+
+on Interact {
+    players = VRCPlayerApi.GetPlayers(players)
+
+    for i in 0..max_players {
+        let player: VRCPlayerApi = players[i]
+
+        if IsValid(player) {
+            // Valid player — show their display name
+            player_fields[i].text = player.displayName
+        } else {
+            // Empty slot — show placeholder
+            player_fields[i].text = "Player {i}"
+        }
+    }
+}

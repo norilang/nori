@@ -1,0 +1,11 @@
+fileFormatVersion: 2
+guid: ac6c3b5d579df3e418752e681856f3f3
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[],"SyncVars":[],"Events":[],"CustomEvents":[],"Functions":[],"ErrorCount":0,"WarningCount":0,"Diagnostics":[]}'

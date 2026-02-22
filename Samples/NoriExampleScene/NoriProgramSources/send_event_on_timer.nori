@@ -1,0 +1,31 @@
+/*
+ * Send Event On Timer — Periodically fire an event
+ *
+ * Every frame, checks whether enough time has elapsed since
+ * the last tick. If so, sends a custom event to the target
+ * and resets the timer.
+ *
+ * Features shown: pub let, on Update, Time.time, if,
+ *                 UdonBehaviour, SendCustomEvent
+ */
+
+/// The UdonBehaviour to send the event to
+pub let target: UdonBehaviour
+
+/// The name of the custom event to send
+pub let event_name: string
+
+/// How many seconds between each event
+pub let duration: float
+
+let last_timer_tick: float = 0.0
+
+on Update {
+    // Check whether enough time has passed since last tick
+    if Time.time - last_timer_tick > duration {
+        target.SendCustomEvent(event_name)
+
+        // Save now as the new last tick
+        last_timer_tick = Time.time
+    }
+}

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 04f5a01ce37ce1c4b86afcafac55d437
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"max_players","TypeName":"int","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Maximum
+    number of player slots to display"},{"Name":"player_fields","TypeName":"UI.Text","IsArray":true,"DefaultValue":"","SyncMode":"","DocComment":"Array
+    of UI Text fields, one per player slot"}],"SyncVars":[],"Events":["Start","Interact"],"CustomEvents":[],"Functions":[],"ErrorCount":1,"WarningCount":0,"Diagnostics":[{"Severity":"error","Code":"E0040","Message":"Unknown
+    type ''UI.Text[]''","Line":17,"Column":5,"Hint":""}]}'

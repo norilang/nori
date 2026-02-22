@@ -1,0 +1,27 @@
+/*
+ * Change Material On Event — Cycle through materials
+ *
+ * Each time the changeMaterial event is called, advances to
+ * the next material in the array and applies it to the
+ * mesh renderer. Wraps around when reaching the end.
+ *
+ * Features shown: pub let, array indexing, .Length,
+ *                 modulo (%), MeshRenderer, Material
+ */
+
+/// Array of materials to cycle through
+pub let materials: Material[]
+
+/// The renderer to change the material on
+pub let mesh_renderer: MeshRenderer
+
+let material_index: int = 0
+
+// Called as a custom event from another UdonBehaviour
+fn changeMaterial() {
+    // Advance and wrap around using modulo
+    material_index = (material_index + 1) % materials.Length
+
+    // Apply the new material
+    mesh_renderer.material = materials[material_index]
+}

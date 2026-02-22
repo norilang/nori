@@ -61,7 +61,60 @@ namespace Nori.Compiler
         {
             var catalog = new FullCatalog();
             catalog.ParseJson(json);
+            catalog.RegisterFallbackEnums();
             return catalog;
+        }
+
+        /// <summary>
+        /// Registers commonly-needed enum types that may be missing from the scraped catalog.
+        /// These enums are used by samples but are often nested types not picked up by the scraper.
+        /// </summary>
+        private void RegisterFallbackEnums()
+        {
+            if (!_enums.ContainsKey("UnityEngineKeyCode"))
+            {
+                _enums["UnityEngineKeyCode"] = new EnumTypeInfo(
+                    "UnityEngineKeyCode", "SystemInt32",
+                    new Dictionary<string, int>
+                    {
+                        ["None"] = 0, ["Backspace"] = 8, ["Tab"] = 9, ["Return"] = 13,
+                        ["Escape"] = 27, ["Space"] = 32, ["Delete"] = 127,
+                        ["Alpha0"] = 48, ["Alpha1"] = 49, ["Alpha2"] = 50, ["Alpha3"] = 51,
+                        ["Alpha4"] = 52, ["Alpha5"] = 53, ["Alpha6"] = 54, ["Alpha7"] = 55,
+                        ["Alpha8"] = 56, ["Alpha9"] = 57,
+                        ["A"] = 97, ["B"] = 98, ["C"] = 99, ["D"] = 100, ["E"] = 101,
+                        ["F"] = 102, ["G"] = 103, ["H"] = 104, ["I"] = 105, ["J"] = 106,
+                        ["K"] = 107, ["L"] = 108, ["M"] = 109, ["N"] = 110, ["O"] = 111,
+                        ["P"] = 112, ["Q"] = 113, ["R"] = 114, ["S"] = 115, ["T"] = 116,
+                        ["U"] = 117, ["V"] = 118, ["W"] = 119, ["X"] = 120, ["Y"] = 121,
+                        ["Z"] = 122, ["LeftShift"] = 304, ["RightShift"] = 303,
+                        ["LeftControl"] = 306, ["RightControl"] = 305,
+                        ["UpArrow"] = 273, ["DownArrow"] = 274, ["LeftArrow"] = 276, ["RightArrow"] = 275
+                    });
+                _knownTypes.Add("UnityEngineKeyCode");
+                _staticTypes.Add("UnityEngineKeyCode");
+            }
+
+            if (!_enums.ContainsKey("VRCSDKBaseVRCPlayerApiTrackingDataType"))
+            {
+                _enums["VRCSDKBaseVRCPlayerApiTrackingDataType"] = new EnumTypeInfo(
+                    "VRCSDKBaseVRCPlayerApiTrackingDataType", "SystemInt32",
+                    new Dictionary<string, int>
+                    {
+                        ["Head"] = 0, ["LeftHand"] = 1, ["RightHand"] = 2, ["Origin"] = 3
+                    });
+                _knownTypes.Add("VRCSDKBaseVRCPlayerApiTrackingDataType");
+                _staticTypes.Add("VRCSDKBaseVRCPlayerApiTrackingDataType");
+            }
+
+            if (!_enums.ContainsKey("VRCSDKBaseVRC_PickupPickupHand"))
+            {
+                _enums["VRCSDKBaseVRC_PickupPickupHand"] = new EnumTypeInfo(
+                    "VRCSDKBaseVRC_PickupPickupHand", "SystemInt32",
+                    new Dictionary<string, int> { ["Left"] = 0, ["Right"] = 1 });
+                _knownTypes.Add("VRCSDKBaseVRC_PickupPickupHand");
+                _staticTypes.Add("VRCSDKBaseVRC_PickupPickupHand");
+            }
         }
 
         // --- JSON Parsing (minimal, Newtonsoft-free) ---
@@ -355,6 +408,13 @@ namespace Nori.Compiler
             return _staticTypes;
         }
 
+        public string GetClrTypeName(string udonType)
+        {
+            if (_typeInfos.TryGetValue(udonType, out var info))
+                return info.DotNetType;
+            return TypeSystem.UdonTypeToClrName(udonType);
+        }
+
         /// <summary>
         /// Returns short name -> UdonType mappings for static type registration.
         /// </summary>
@@ -449,6 +509,11 @@ namespace Nori.Compiler
 
             if (dotNetType != null)
             {
+                // UI types: UnityEngine.UI.Toggle → UIToggle (not Toggle)
+                // This prevents collision with user-defined function names like "Toggle"
+                if (dotNetType.StartsWith("UnityEngine.UI."))
+                    return "UI" + dotNetType.Substring("UnityEngine.UI.".Length);
+
                 int lastDot = dotNetType.LastIndexOf('.');
                 int lastPlus = dotNetType.LastIndexOf('+');
                 int sep = Math.Max(lastDot, lastPlus);

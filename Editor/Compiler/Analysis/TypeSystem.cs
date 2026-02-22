@@ -32,6 +32,42 @@ namespace Nori.Compiler
             ["Collision"] = "UnityEngineCollision",
             ["SerializationResult"] = "VRCSDKBaseVRCSerializationResult",
             ["UdonBehaviour"] = "VRCUdonUdonBehaviour",
+            ["VRCPlayerApi"] = "VRCSDKBaseVRCPlayerApi",
+            ["Material"] = "UnityEngineMaterial",
+            ["LineRenderer"] = "UnityEngineLineRenderer",
+            ["Renderer"] = "UnityEngineRenderer",
+            ["ConstantForce"] = "UnityEngineConstantForce",
+            ["ParticleSystem"] = "UnityEngineParticleSystem",
+
+            // UI types (dotted names collapse: UI.Text -> UIText)
+            ["UIText"] = "UnityEngineUIText",
+            ["UIDropdown"] = "UnityEngineUIDropdown",
+            ["UIInputField"] = "UnityEngineUIInputField",
+            ["UIToggle"] = "UnityEngineUIToggle",
+            ["UISlider"] = "UnityEngineUISlider",
+            ["UIImage"] = "UnityEngineUIImage",
+            ["Text"] = "UnityEngineUIText",
+
+            // VRC types
+            ["VRCObjectPool"] = "VRCSDK3ComponentsVRCObjectPool",
+            ["VRCObjectSync"] = "VRCSDK3ComponentsVRCObjectSync",
+            ["VRCAvatarPedestal"] = "VRCSDK3ComponentsVRCAvatarPedestal",
+            ["VRCPickup"] = "VRCSDK3ComponentsVRCPickup",
+            ["VRCVideoPlayer"] = "VRCSDK3VideoComponentsBaseBaseVRCVideoPlayer",
+            ["VRCUrlInputField"] = "VRCSDK3ComponentsVRCUrlInputField",
+            ["VRCUrl"] = "VRCSDKBaseVRCUrl",
+            ["VRCImageDownloader"] = "VRCSDK3ImageVRCImageDownloader",
+            ["TextureInfo"] = "VRCSDK3ImageTextureInfo",
+            ["TrackingData"] = "VRCSDKBaseVRCPlayerApiTrackingData",
+            ["IVRCStringDownload"] = "VRCSDK3StringLoadingIVRCStringDownload",
+            ["IVRCImageDownload"] = "VRCSDK3ImageIVRCImageDownload",
+            ["Component"] = "UnityEngineComponent",
+            ["Behaviour"] = "UnityEngineBehaviour",
+
+            // Enum types
+            ["KeyCode"] = "UnityEngineKeyCode",
+            ["TrackingDataType"] = "VRCSDKBaseVRCPlayerApiTrackingDataType",
+            ["PickupHand"] = "VRCSDKBaseVRC_PickupPickupHand",
         };
 
         private static readonly Dictionary<string, string> UdonToNori = new Dictionary<string, string>();
@@ -60,11 +96,20 @@ namespace Nori.Compiler
             if (NoriToUdon.TryGetValue(noriType, out var udon))
                 return udon;
 
+            // Handle dotted type names: UI.Text -> UnityEngineUIText
+            if (noriType.Contains("."))
+            {
+                string collapsed = noriType.Replace(".", "");
+                if (NoriToUdon.TryGetValue(collapsed, out var udon2))
+                    return udon2;
+            }
+
             // Fallback: try common namespace prefixes against the catalog
             if (Catalog != null)
             {
                 string[] prefixes = { "UnityEngine", "System", "VRCSDKBase", "VRCSDKBaseVRC",
-                    "VRCUdon", "UnityEngineUI" };
+                    "VRCUdon", "UnityEngineUI", "VRCSDK3Components", "VRCSDK3Image",
+                    "VRCSDK3StringLoading", "VRCSDK3VideoComponentsBase" };
                 foreach (var prefix in prefixes)
                 {
                     string candidate = prefix + noriType;
@@ -98,6 +143,7 @@ namespace Nori.Compiler
         {
             if (targetUdon == sourceUdon) return true;
             if (targetUdon == "SystemObject") return true; // everything assignable to object
+            if (targetUdon == "UnityEngineObject" && IsUnityOrVrcType(sourceUdon)) return true; // Unity/VRC → Object
             if (sourceUdon == "SystemInt32" && targetUdon == "SystemSingle") return true; // int -> float
             if (sourceUdon == "SystemInt32" && targetUdon == "SystemDouble") return true; // int -> double
             if (sourceUdon == "SystemSingle" && targetUdon == "SystemDouble") return true; // float -> double
@@ -112,6 +158,14 @@ namespace Nori.Compiler
             return false;
         }
 
+        private static bool IsUnityOrVrcType(string udonType)
+        {
+            return udonType.StartsWith("UnityEngine") ||
+                   udonType.StartsWith("VRCSDKBase") ||
+                   udonType.StartsWith("VRCSDK3") ||
+                   udonType.StartsWith("VRCUdon");
+        }
+
         public static bool IsNumeric(string udonType)
         {
             return udonType == "SystemInt32" || udonType == "SystemUInt32" ||
@@ -123,6 +177,38 @@ namespace Nori.Compiler
             if (noriType.EndsWith("[]"))
                 return IsKnownType(noriType.Substring(0, noriType.Length - 2));
             return NoriToUdon.ContainsKey(noriType);
+        }
+
+        /// <summary>
+        /// Converts a Udon type name to its CLR type name for SystemType constants.
+        /// E.g., "UnityEngineMeshRenderer" → "UnityEngine.MeshRenderer"
+        /// </summary>
+        public static string UdonTypeToClrName(string udonType)
+        {
+            if (udonType.StartsWith("UnityEngineUI"))
+                return "UnityEngine.UI." + udonType.Substring("UnityEngineUI".Length);
+            if (udonType.StartsWith("UnityEngine"))
+                return "UnityEngine." + udonType.Substring("UnityEngine".Length);
+            // VRCSDK3 prefixes must come before VRCSDKBase (both start with "VRC")
+            if (udonType.StartsWith("VRCSDK3VideoComponentsBase"))
+                return "VRC.SDK3.Video.Components.Base." + udonType.Substring("VRCSDK3VideoComponentsBase".Length);
+            if (udonType.StartsWith("VRCSDK3StringLoading"))
+                return "VRC.SDK3.StringLoading." + udonType.Substring("VRCSDK3StringLoading".Length);
+            if (udonType.StartsWith("VRCSDK3Image"))
+                return "VRC.SDK3.Image." + udonType.Substring("VRCSDK3Image".Length);
+            if (udonType.StartsWith("VRCSDK3Components"))
+                return "VRC.SDK3.Components." + udonType.Substring("VRCSDK3Components".Length);
+            if (udonType.StartsWith("VRCSDK3Network"))
+                return "VRC.SDK3.Network." + udonType.Substring("VRCSDK3Network".Length);
+            if (udonType.StartsWith("VRCSDKBase"))
+                return "VRC.SDKBase." + udonType.Substring("VRCSDKBase".Length);
+            if (udonType.StartsWith("VRCUdon"))
+                return "VRC.Udon." + udonType.Substring("VRCUdon".Length);
+            if (udonType.StartsWith("TMPro"))
+                return "TMPro." + udonType.Substring("TMPro".Length);
+            if (udonType.StartsWith("System"))
+                return "System." + udonType.Substring("System".Length);
+            return udonType;
         }
 
         public static string DefaultValue(string udonType)
@@ -141,7 +227,10 @@ namespace Nori.Compiler
         {
             return name == "Time" || name == "Networking" || name == "Vector3" ||
                    name == "Vector2" || name == "Vector4" || name == "Quaternion" ||
-                   name == "Color" || name == "Mathf" || name == "Physics";
+                   name == "Color" || name == "Mathf" || name == "Physics" ||
+                   name == "Random" || name == "Input" || name == "String" ||
+                   name == "Utilities" || name == "VRCPlayerApi" ||
+                   name == "VRCStringDownloader";
         }
 
         public static string GetStaticUdonType(string name)
@@ -157,6 +246,12 @@ namespace Nori.Compiler
                 case "Color": return "UnityEngineColor";
                 case "Mathf": return "UnityEngineMathf";
                 case "Physics": return "UnityEnginePhysics";
+                case "Random": return "UnityEngineRandom";
+                case "Input": return "UnityEngineInput";
+                case "String": return "SystemString";
+                case "Utilities": return "VRCSDKBaseUtilities";
+                case "VRCPlayerApi": return "VRCSDKBaseVRCPlayerApi";
+                case "VRCStringDownloader": return "VRCSDKBaseVRC_StringDownloader";
                 default: return null;
             }
         }

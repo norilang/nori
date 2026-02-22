@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 68622491a9b258049b9511d3a8a77e67
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"objects","TypeName":"GameObject","IsArray":true,"DefaultValue":"","SyncMode":"","DocComment":"Array
+    of scene GameObjects to cycle through"},{"Name":"active_scene_label","TypeName":"UI.Text","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Text
+    label showing the active object''s name"}],"SyncVars":[{"Name":"current_index","TypeName":"int","IsArray":false,"DefaultValue":"","SyncMode":"none","DocComment":""}],"Events":["VariableChange"],"CustomEvents":["Next","Previous","ONext","OPrevious"],"Functions":[],"ErrorCount":1,"WarningCount":0,"Diagnostics":[{"Severity":"error","Code":"E0040","Message":"Unknown
+    type ''UI.Text''","Line":17,"Column":5,"Hint":""}]}'

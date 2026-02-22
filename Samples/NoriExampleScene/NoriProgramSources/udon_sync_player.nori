@@ -1,0 +1,121 @@
+/*
+ * Udon Sync Player — Networked video player with synced playback
+ *
+ * The owner controls video playback by entering a URL. The video
+ * URL and current playback time are synced to all players so
+ * everyone watches the same content at roughly the same timestamp.
+ *
+ * The owner periodically records their playback time plus the
+ * server time offset into a synced Vector2 (x = video time,
+ * y = server time). Remote players use this to calculate and
+ * seek to the correct position, compensating for network delay.
+ *
+ * Setup: Assign a VRC Video Player component and a VRC URL Input
+ * Field in the inspector. Set sync_frequency to control how often
+ * the owner broadcasts time updates (in seconds, 0 = disabled).
+ *
+ * Features shown: sync none (VRCUrl, Vector2), VariableChange,
+ *                 VRCVideoPlayer, VRCUrlInputField,
+ *                 Networking.IsOwner, Networking.SetOwner,
+ *                 Networking.GetServerTimeInSeconds,
+ *                 SetProgramVariable, RequestSerialization,
+ *                 SendCustomEventDelayedSeconds,
+ *                 IsValid, ownership control
+ */
+
+/// Video player component to control
+pub let player: VRCVideoPlayer
+
+/// URL input field for entering video URLs
+pub let url_input_field: VRCUrlInputField
+
+/// How often (in seconds) the owner syncs playback time (0 = disabled)
+pub let sync_frequency: float
+
+/// Whether non-owners can take control of the player
+pub let allow_guest_control: bool
+
+/// Synced video URL — changes trigger playback on all clients
+sync none url: VRCUrl
+
+/// Synced time vector: x = video time, y = server time at capture
+sync none time_and_offset: Vector2
+
+// Called when the user submits a new URL from the input field
+fn OnURLChanged() {
+    // Take ownership so we can update synced variables
+    let local_player: VRCPlayerApi = Networking.LocalPlayer
+    if IsValid(local_player) {
+        Networking.SetOwner(local_player, gameObject)
+
+        // Read the URL from the input field and sync it
+        if IsValid(url_input_field) {
+            url = url_input_field.GetUrl()
+            RequestSerialization()
+        }
+    }
+}
+
+on VariableChange {
+    // When the synced URL changes, start playing the new video
+    if IsValid(player) {
+        player.PlayURL(url)
+    }
+
+    // When synced time changes, resync playback on non-owners
+    if !Networking.IsOwner(gameObject) {
+        Resync()
+    }
+}
+
+on VideoStart {
+    // Video started playing — begin syncing time
+    UpdateTimeAndOffset()
+}
+
+// Records the current playback time and server time, then syncs
+fn UpdateTimeAndOffset() {
+    if Networking.IsOwner(gameObject) {
+        if IsValid(player) {
+            // Capture current video time and server time
+            let video_time: float = player.GetTime()
+            let server_time: double = Networking.GetServerTimeInSeconds()
+            let server_time_f: float = server_time as float
+
+            // Pack into a Vector2 and sync
+            time_and_offset = Vector2(video_time, server_time_f)
+            RequestSerialization()
+
+            // Schedule the next sync if frequency is set
+            if sync_frequency > 0.0 {
+                SendCustomEventDelayedSeconds("UpdateTimeAndOffset", sync_frequency, 0)
+            }
+        }
+    } else {
+        // Non-owner: resync to the owner's time
+        Resync()
+    }
+}
+
+// Calculates the correct playback position from synced data and seeks
+fn Resync() {
+    if IsValid(player) {
+        // Extract the owner's video time and the server time when it was captured
+        let saved_time: float = time_and_offset.x
+        let current_server: double = Networking.GetServerTimeInSeconds()
+        let current_server_f: float = current_server as float
+        let saved_server: float = time_and_offset.y
+
+        // Calculate elapsed time since the owner's snapshot
+        let elapsed: float = current_server_f - saved_server
+
+        // Seek to the estimated current position
+        let target_time: float = saved_time + elapsed
+        player.SetTime(target_time)
+    }
+}
+
+on OwnershipRequest {
+    // Only allow ownership transfer if guest control is enabled
+    return allow_guest_control
+}

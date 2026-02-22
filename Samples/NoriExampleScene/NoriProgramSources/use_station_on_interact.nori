@@ -1,0 +1,12 @@
+/*
+ * Use Station On Interact — Sit down when clicked
+ *
+ * When a player clicks this object, the local player is
+ * placed into the attached VRCStation (a chair, vehicle, etc.).
+ *
+ * Features shown: on Interact, localPlayer, UseAttachedStation()
+ */
+
+on Interact {
+    localPlayer.UseAttachedStation()
+}

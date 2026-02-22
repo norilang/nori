@@ -1,0 +1,60 @@
+/*
+ * Pen Line — Synced line segment for the Simple Pen system
+ *
+ * Each PenLine manages a single LineRenderer stroke drawn by
+ * the Simple Pen. The owner (drawer) periodically calls OnUpdate
+ * to snapshot the current line positions into the synced points
+ * array. When drawing stops, OnFinish simplifies the line and
+ * does a final sync. Remote players receive the synced points
+ * via OnDeserialization and apply them to their local LineRenderer.
+ *
+ * Setup: Attach to the same GameObject as a LineRenderer.
+ * The Simple Pen will assign ownership and call OnUpdate/OnFinish.
+ *
+ * Features shown: sync none (Vector3[]), Deserialization,
+ *                 OwnershipRequest, LineRenderer.GetPositions,
+ *                 LineRenderer.SetPositions, LineRenderer.Simplify,
+ *                 RequestSerialization, SendCustomEvent
+ */
+
+/// LineRenderer component on this object
+pub let line_renderer: LineRenderer
+
+/// Synced array of line positions (sent from owner to remotes)
+sync none points: Vector3[]
+
+let is_down: bool = false
+
+// Called by SimplePen when drawing finishes
+fn OnFinish() {
+    // Simplify the line to reduce point count
+    line_renderer.Simplify(0.005)
+
+    // Do a final position sync after simplification
+    OnUpdate()
+}
+
+// Called by SimplePen periodically during drawing to sync positions
+fn OnUpdate() {
+    // Create an array sized to hold all current positions
+    let count: int = line_renderer.positionCount - 1
+    let positions: Vector3[] = Vector3[](count)
+
+    // Copy positions from the LineRenderer into the array
+    line_renderer.GetPositions(positions)
+
+    // Store in the synced variable and request sync
+    points = positions
+    RequestSerialization()
+}
+
+on Deserialization {
+    // Remote players: apply the synced positions to the LineRenderer
+    line_renderer.positionCount = points.Length
+    line_renderer.SetPositions(points)
+}
+
+on OwnershipRequest {
+    // Allow all ownership transfers
+    return true
+}

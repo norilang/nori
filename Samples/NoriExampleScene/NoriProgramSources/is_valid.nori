@@ -1,0 +1,20 @@
+/*
+ * Is Valid — Check whether the local player reference is valid
+ *
+ * On Start, gets the local player and checks if the reference
+ * is valid before trying to access properties. This is important
+ * in Udon because some references can be null in certain contexts.
+ *
+ * Features shown: on Start, localPlayer, Utilities.IsValid(),
+ *                 if/else, displayName, log()
+ */
+
+on Start {
+    let player: VRCPlayerApi = localPlayer
+
+    if Utilities.IsValid(player) {
+        log("Player is {player.displayName}")
+    } else {
+        log("Player is not Valid")
+    }
+}

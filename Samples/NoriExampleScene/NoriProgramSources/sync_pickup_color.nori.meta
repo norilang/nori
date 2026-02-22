@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 43dc404cc5932a44fbed80724715a791
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[{"Name":"from_color","TypeName":"Color","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Starting
+    color for the oscillation"},{"Name":"to_color","TypeName":"Color","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Ending
+    color for the oscillation"},{"Name":"target_renderer","TypeName":"Renderer","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"Renderer
+    whose material color will be updated"},{"Name":"pickup","TypeName":"VRCPickup","IsArray":false,"DefaultValue":"","SyncMode":"","DocComment":"The
+    VRC Pickup component on this object"}],"SyncVars":[{"Name":"sync_color","TypeName":"Color","IsArray":false,"DefaultValue":"","SyncMode":"smooth","DocComment":""}],"Events":["Update","OwnershipTransferred"],"CustomEvents":[],"Functions":[],"ErrorCount":1,"WarningCount":0,"Diagnostics":[{"Severity":"error","Code":"E0040","Message":"Unknown
+    type ''VRCPickup''","Line":24,"Column":5,"Hint":""}]}'

@@ -1,0 +1,19 @@
+/*
+ * Set Active From Player Trigger — Show/hide on player enter/exit
+ *
+ * When a player enters this trigger volume, the target GameObject
+ * is activated. When the player leaves, it is deactivated.
+ *
+ * Features shown: pub let, SetActive(), player trigger events
+ */
+
+/// The object to show/hide when players enter/exit
+pub let target: GameObject
+
+on PlayerTriggerExit(player: VRCPlayerApi) {
+    target.SetActive(false)
+}
+
+on PlayerTriggerEnter(player: VRCPlayerApi) {
+    target.SetActive(true)
+}

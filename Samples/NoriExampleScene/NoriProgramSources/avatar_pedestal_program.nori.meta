@@ -1,0 +1,12 @@
+fileFormatVersion: 2
+guid: 95468e81650363046bb0c17c911a3388
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: fa175ba68b5efe74da888533efeebd12, type: 3}
+  _serializedMetadataJson: '{"PublicVars":[],"SyncVars":[],"Events":["Interact"],"CustomEvents":[],"Functions":[],"ErrorCount":1,"WarningCount":0,"Diagnostics":[{"Severity":"error","Code":"E0040","Message":"Unknown
+    type ''VRCAvatarPedestal''","Line":17,"Column":5,"Hint":""}]}'

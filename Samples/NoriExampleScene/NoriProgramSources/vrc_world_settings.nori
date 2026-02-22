@@ -1,0 +1,37 @@
+/*
+ * VRC World Settings — Configures player movement on start
+ *
+ * Place this script on any GameObject in the scene. On Start,
+ * it applies the configured movement speeds and jump impulse
+ * to the local player. All values are exposed in the Inspector
+ * for easy tuning.
+ *
+ * Features shown: on Start, Networking.LocalPlayer,
+ *                 VRCPlayerApi.IsValid(),
+ *                 SetJumpImpulse, SetWalkSpeed,
+ *                 SetRunSpeed, SetStrafeSpeed
+ */
+
+/// Jump strength applied to the local player
+pub let jump_impulse: float = 3.0
+
+/// Walking speed
+pub let walk_speed: float = 2.0
+
+/// Running speed
+pub let run_speed: float = 4.0
+
+/// Strafing speed
+pub let strafe_speed: float = 2.0
+
+on Start {
+    let player: VRCPlayerApi = Networking.LocalPlayer
+    if !VRCPlayerApi.IsValid(player) {
+        return
+    }
+
+    player.SetJumpImpulse(jump_impulse)
+    player.SetWalkSpeed(walk_speed)
+    player.SetRunSpeed(run_speed)
+    player.SetStrafeSpeed(strafe_speed)
+}

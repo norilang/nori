@@ -21,5 +21,6 @@ namespace Nori.Compiler
         CatalogTypeInfo GetTypeInfo(string udonType);
         ImplicitConversion GetImplicitConversion(string fromType, string toType);
         IEnumerable<string> GetStaticTypeNames();
+        string GetClrTypeName(string udonType);
     }
 }
